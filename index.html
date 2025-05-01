@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive RAG Simulator - Multi-Query</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide-react@0.378.0/dist/umd/lucide.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+        }
+        .step {
+            transition: all 0.3s ease-in-out;
+            border: 1px solid #e2e8f0;
+            min-height: 180px; /* Base height */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1rem; /* Add margin below each step for button */
+        }
+        .step-active {
+            border-color: #3b82f6;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -4px rgba(59, 130, 246, 0.1);
+        }
+        .step-complete {
+            border-color: #10b981;
+            opacity: 0.9;
+        }
+        .step-complete::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.1rem;
+            opacity: 0;
+            animation: fadeInCheck 0.5s 0.3s ease-out forwards;
+        }
+        @keyframes fadeInCheck {
+            to { opacity: 1; }
+        }
+        .content-display {
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            font-size: 0.875rem; /* Default font size for most content */
+            color: #475569;
+            overflow-y: auto;
+            flex-grow: 1;
+            margin-top: 0.75rem;
+            opacity: 1;
+            transition: opacity 0.4s ease-in-out;
+            min-height: 80px; /* Minimum height for content */
+        }
+        /* Smaller font size specifically for chunks and vector DB */
+        #chunks, #vectorDb {
+             font-size: 0.8rem; /* Smaller font size */
+             line-height: 1.4; /* Adjust line height for readability */
+        }
+        .content-display.fade-out {
+            opacity: 0;
+        }
+        .content-display:empty::before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            font-style: italic;
+        }
+        #chunks .chunk-item, #vectorDb .chunk-vector-item {
+            padding: 0.4rem 0.25rem; /* Slightly increased padding */
+            border-bottom: 1px dashed #e2e8f0;
+        }
+         #chunks .chunk-item:last-child, #vectorDb .chunk-vector-item:last-child {
+            border-bottom: none;
+        }
+         #vectorDb .chunk-text {
+             display: block;
+             margin-bottom: 0.25rem;
+             color: #334155;
+         }
+         #vectorDb .vector-rep {
+             font-size: 0.7rem; /* Make embedding even smaller */
+             color: #64748b;
+             word-break: break-all;
+             font-family: monospace; /* Monospace for vector */
+             background-color: #e2e8f0; /* Light background for embedding */
+             padding: 0.1rem 0.3rem;
+             border-radius: 0.25rem;
+             display: inline-block;
+         }
+        /* Styling for Retrieved Knowledge Box */
+        #retrievedKnowledge {
+             font-size: 0.8rem;
+             line-height: 1.4;
+             text-align: left; /* Align text left for readability */
+         }
+         #retrievedKnowledge .info-label {
+             font-weight: 600;
+             color: #1e293b;
+             display: block;
+             margin-top: 0.5rem;
+             margin-bottom: 0.1rem;
+         }
+         #retrievedKnowledge .info-content {
+             font-family: monospace; /* Use monospace for embeddings */
+             font-size: 0.75rem;
+             color: #475569;
+             word-break: break-all;
+             background-color: #e2e8f0;
+             padding: 0.2rem 0.4rem;
+             border-radius: 0.25rem;
+             display: inline-block; /* Fit content width */
+             margin-bottom: 0.5rem;
+         }
+          #retrievedKnowledge .info-content.chunk-text {
+             font-family: inherit; /* Use default font for chunk text */
+             font-size: inherit;
+             background-color: transparent;
+             padding: 0;
+             display: block; /* Take full width */
+             border: 1px dashed #cbd5e1; /* Add border to chunk text */
+             padding: 0.5rem;
+             border-radius: 0.375rem;
+             background-color: #f8fafc;
+         }
+         #retrievedKnowledge .info-content.score {
+             font-family: inherit;
+             font-size: 0.8rem;
+             font-weight: 500;
+             color: #059669; /* Green for score */
+             background-color: #d1fae5;
+         }
+         #retrievedKnowledge .not-found {
+             font-style: italic;
+             color: #64748b;
+             text-align: center;
+         }
+
+
+        .arrow-connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #cbd5e1;
+            flex-shrink: 0;
+            transition: color 0.3s ease;
+            margin-bottom: 1rem; /* Add margin below arrows */
+        }
+        .arrow-connector.active {
+             color: #3b82f6;
+        }
+        .arrow-connector svg {
+            width: 2rem;
+            height: 2rem;
+        }
+        /* Desktop layout: Horizontal arrows, fixed step width */
+        @media (min-width: 1024px) {
+            .process-row {
+                 flex-direction: row;
+                 align-items: flex-start; /* Align tops */
+                 justify-content: center;
+                 gap: 0; /* Remove gap, use margins on arrows */
+             }
+            .step-container { /* Wrap step and button */
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 240px; /* Fixed width for step */
+                flex-shrink: 0;
+            }
+            .step {
+                width: 100%; /* Step takes full width of container */
+                margin-bottom: 0; /* Remove margin below step */
+            }
+            .arrow-connector.horizontal {
+                margin: 0 1.5rem; /* Spacing between steps */
+                padding-top: 80px; /* Align arrow vertically */
+                display: flex; /* Show horizontal */
+                margin-bottom: 0; /* Remove bottom margin */
+                align-self: flex-start; /* Align arrow to top */
+            }
+            .arrow-connector.vertical {
+                display: none; /* Hide vertical */
+            }
+            /* Ensure step 4 has enough height for suggestions */
+            #step4 {
+                 min-height: 220px;
+            }
+            .next-button-container {
+                margin-top: 1rem; /* Space between step and button */
+            }
+        }
+        /* Mobile/Tablet layout: Vertical arrows, full width steps */
+        @media (max-width: 1023px) {
+             .process-row {
+                 flex-direction: column;
+                 align-items: stretch; /* Steps take full width */
+                 gap: 0; /* Remove gap, handled by margins */
+            }
+             .step-container { /* Wrap step and button */
+                display: flex;
+                flex-direction: column;
+                align-items: center; /* Center button below step */
+                width: 100%;
+             }
+            .step {
+                 width: 100%; /* Full width */
+                 margin-bottom: 0; /* Remove margin below step */
+            }
+             .arrow-connector.horizontal {
+                display: none; /* Hide horizontal */
+            }
+            .arrow-connector.vertical {
+                 margin: 1rem 0; /* Vertical spacing */
+                 transform: rotate(90deg); /* Point down */
+                 display: flex; /* Show vertical */
+                 margin-bottom: 1rem; /* Ensure space before next step */
+            }
+             .next-button-container {
+                margin-top: 1rem; /* Space between step and button */
+                margin-bottom: 1rem; /* Space before next arrow/step */
+            }
+        }
+        .icon {
+            width: 1.125rem;
+            height: 1.125rem;
+            stroke-width: 2;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .step-title {
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+        textarea, input[type="text"] {
+            border: 1px solid #cbd5e1;
+            padding: 0.6rem 0.8rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 0.875rem;
+            color: #334155;
+            background-color: white;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+         textarea:focus, input[type="text"]:focus {
+             outline: none;
+             border-color: #3b82f6;
+             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+         }
+         textarea {
+             min-height: 10rem; /* Increased height for longer text */
+             resize: vertical;
+         }
+        .control-button {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid transparent;
+            gap: 0.5rem;
+        }
+        .control-button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .control-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        /* Shared style for Next buttons */
+        .next-step-button {
+             background-color: #3b82f6;
+             color: white;
+        }
+         .next-step-button:hover:not(:disabled) {
+             background-color: #2563eb;
+             transform: translateY(-1px);
+              box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+         }
+         .next-step-button:disabled {
+             background-color: #94a3b8;
+         }
+
+        #startButton {
+            background-color: #3b82f6;
+            color: white;
+        }
+        #startButton:hover:not(:disabled){
+             background-color: #2563eb;
+             transform: translateY(-1px);
+              box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+        }
+        #startButton:disabled {
+             background-color: #94a3b8;
+        }
+
+        #resetButton {
+            background-color: #64748b;
+            color: white;
+        }
+        #resetButton:hover:not(:disabled) {
+            background-color: #475569;
+            transform: translateY(-1px);
+             box-shadow: 0 4px 10px rgba(100, 116, 139, 0.2);
+        }
+         /* Style for New Query button */
+        #newQueryButton {
+            background-color: #10b981; /* Green */
+            color: white;
+        }
+        #newQueryButton:hover:not(:disabled) {
+            background-color: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+        }
+        .suggestion-button {
+            background-color: #f1f5f9;
+            color: #475569;
+            padding: 0.3rem 0.7rem;
+            border-radius: 9999px; /* Pill shape */
+            border: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.2rem;
+            display: inline-block;
+            line-height: 1.2;
+        }
+        .suggestion-button:hover {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #1e293b;
+            transform: translateY(-1px);
+        }
+        .process-flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem; /* Consistent gap between phases */
+            width: 100%;
+            max-width: 80rem; /* Max width for the whole simulator */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .error-text {
+            color: #dc2626; /* Red color for errors */
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+         /* Container for next/new query buttons */
+         .button-action-container {
+             text-align: center;
+             width: 100%;
+             height: 60px; /* Reserve space even when hidden */
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             margin-top: 1rem; /* Default top margin */
+         }
+         .button-action-container.hidden {
+             visibility: hidden; /* Keep space but hide */
+         }
+         /* Specific margins for mobile/desktop handled in media queries */
+         @media (min-width: 1024px) {
+            .step-container .button-action-container {
+                 margin-top: 1rem; /* Space between step and button */
+            }
+            #newQueryButtonContainer {
+                 margin-top: 1.5rem; /* Extra space after phase 2 */
+                 margin-bottom: 1rem;
+            }
+         }
+        @media (max-width: 1023px) {
+             .step-container .button-action-container {
+                 margin-top: 1rem; /* Space between step and button */
+                 margin-bottom: 1rem; /* Space before next arrow/step */
+             }
+             #newQueryButtonContainer {
+                 margin-top: 1.5rem; /* Extra space after phase 2 */
+                 margin-bottom: 1rem;
+            }
+         }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="text-center mb-10">
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Interactive RAG Simulator</h1>
+        <p class="mt-2 text-lg text-slate-600 max-w-3xl mx-auto">Visualize the step-by-step process of Retrieval-Augmented Generation.</p>
+    </header>
+
+    <div class="text-center mb-10 space-x-3 md:space-x-4">
+        <button id="startButton" class="control-button">
+            <i data-lucide="play-circle"></i> Start Simulation
+        </button>
+        <button id="resetButton" class="control-button">
+            <i data-lucide="rotate-cw"></i> Reset All
+        </button>
+    </div>
+
+    <div id="statusMessage" aria-live="polite" class="text-center mb-10 text-xl font-medium text-slate-700 h-8">
+        Click "Start Simulation" to begin.
+    </div>
+
+    <div class="process-flow-container">
+
+        <section aria-labelledby="phase1-title">
+            <h2 id="phase1-title" class="text-2xl font-semibold mb-5 text-slate-800 text-center">Phase 1: Knowledge Preparation</h2>
+            <div class="process-row items-center justify-center">
+                <div class="step-container">
+                    <div id="step1" class="step">
+                        <h3 class="step-title"><i data-lucide="file-text" class="icon"></i>1. Knowledge Doc</h3>
+                        <textarea id="knowledgeDoc" class="content-display" placeholder="Enter or use default knowledge text."></textarea>
+                    </div>
+                    <div class="button-action-container next-button-container hidden" data-step="1">
+                        <button class="control-button next-step-button" disabled>
+                            <i data-lucide="skip-forward"></i> Next Step
+                        </button>
+                    </div>
+                </div>
+
+                <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
+                <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+
+                <div class="step-container">
+                    <div id="step2" class="step">
+                        <h3 class="step-title"><i data-lucide="grip" class="icon"></i><i data-lucide="scissors" class="icon ml-1"></i>2. Chunk Text</h3>
+                        <div id="chunks" class="content-display text-left" placeholder="Text Chunks appear here..."></div>
+                    </div>
+                    <div class="button-action-container next-button-container hidden" data-step="2">
+                        <button class="control-button next-step-button" disabled>
+                            <i data-lucide="skip-forward"></i> Next Step
+                        </button>
+                    </div>
+                </div>
+
+                <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
+                <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+
+                <div class="step-container">
+                    <div id="step3" class="step">
+                         <h3 class="step-title"><i data-lucide="database" class="icon"></i><i data-lucide="atom" class="icon ml-1"></i>3. Vector Database</h3>
+                        <div id="vectorDb" class="content-display text-left" placeholder="Chunk embeddings stored here..."></div>
+                    </div>
+                    <div class="button-action-container next-button-container hidden" data-step="3">
+                        <button class="control-button next-step-button" disabled>
+                            <i data-lucide="skip-forward"></i> Next Step
+                        </button>
+                    </div>
+                </div>
+            </div>
+             </section>
+
+        <section aria-labelledby="phase2-title">
+             <h2 id="phase2-title" class="text-2xl font-semibold mb-5 text-slate-800 text-center">Phase 2: Querying & Generation</h2>
+             <div class="process-row items-center justify-center flex-wrap">
+                 <div class="step-container">
+                     <div id="step4" class="step">
+                        <h3 class="step-title"><i data-lucide="user" class="icon"></i>4. User Query</h3>
+                        <input type="text" id="userInput" class="mb-2" placeholder="Enter query or choose below">
+                        <div id="userInputError" class="error-text hidden">Please enter a query.</div>
+                        <div id="suggestionsContainer" class="mt-2 text-center hidden">
+                            <p class="text-xs text-gray-500 mb-1">Suggestions:</p>
+                            <button class="suggestion-button" data-query="Which planet is closest to the Sun?">Closest planet?</button>
+                            <button class="suggestion-button" data-query="Tell me about Saturn's rings.">Saturn's rings?</button>
+                            <button class="suggestion-button" data-query="What are Jupiter's Galilean moons?">Jupiter's moons?</button>
+                            <button class="suggestion-button" data-query="What is the largest animal on Earth?">Largest animal?</button>
+                        </div>
+                     </div>
+                     <div class="button-action-container next-button-container hidden" data-step="4">
+                         <button class="control-button next-step-button" disabled>
+                             <i data-lucide="skip-forward"></i> Next Step
+                         </button>
+                     </div>
+                 </div>
+
+                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
+                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+
+                 <div class="step-container">
+                     <div id="step5" class="step">
+                         <h3 class="step-title"><i data-lucide="atom" class="icon"></i>5. Embed Query</h3>
+                         <div id="inputEmbedding" class="content-display text-center" placeholder="Query embedding appears here..."></div>
+                     </div>
+                     <div class="button-action-container next-button-container hidden" data-step="5">
+                         <button class="control-button next-step-button" disabled>
+                             <i data-lucide="skip-forward"></i> Next Step
+                         </button>
+                     </div>
+                 </div>
+
+                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
+                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+
+                 <div class="step-container">
+                     <div id="step67" class="step">
+                         <h3 class="step-title"><i data-lucide="search" class="icon"></i><i data-lucide="database-zap" class="icon ml-1"></i>6/7. Retrieve Chunks</h3>
+                         <div id="retrievedKnowledge" class="content-display" placeholder="Relevant knowledge appears here..."></div>
+                     </div>
+                     <div class="button-action-container next-button-container hidden" data-step="67"> <button class="control-button next-step-button" disabled>
+                             <i data-lucide="skip-forward"></i> Next Step
+                         </button>
+                     </div>
+                 </div>
+
+                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
+                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+
+                 <div class="step-container">
+                     <div id="step8" class="step">
+                        <h3 class="step-title"><i data-lucide="list-plus" class="icon"></i><i data-lucide="file-question" class="icon ml-1"></i>8. Augment Prompt</h3>
+                        <div id="combinedPrompt" class="content-display text-left" placeholder="Combined prompt for LLM appears here..."></div>
+                     </div>
+                     <div class="button-action-container next-button-container hidden" data-step="8">
+                         <button class="control-button next-step-button" disabled>
+                             <i data-lucide="skip-forward"></i> Next Step
+                         </button>
+                     </div>
+                 </div>
+
+                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
+                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+
+                 <div class="step-container">
+                     <div id="step9" class="step">
+                         <h3 class="step-title"><i data-lucide="brain-circuit" class="icon"></i><i data-lucide="message-circle-reply" class="icon ml-1"></i>9. Generate Answer</h3>
+                         <div id="finalAnswer" class="content-display text-center font-medium" placeholder="Final answer appears here..."></div>
+                     </div>
+                     <div class="button-action-container next-button-container hidden" data-step="9">
+                         </div>
+                 </div>
+             </div>
+             <div id="newQueryButtonContainer" class="button-action-container hidden">
+                 <button id="newQueryButton" class="control-button">
+                     <i data-lucide="search"></i> Run New Query
+                 </button>
+             </div>
+             </section>
+
+    </div>
+
+    <footer class="text-center mt-12 text-sm text-slate-500">
+        <p>RAG Simulator - Illustrative Example</p>
+    </footer>
+
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const nextButtons = document.querySelectorAll('.next-step-button');
+        const allNextButtonContainers = document.querySelectorAll('.next-button-container');
+        const resetButton = document.getElementById('resetButton');
+        const newQueryButton = document.getElementById('newQueryButton');
+        const newQueryButtonContainer = document.getElementById('newQueryButtonContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const knowledgeDocInput = document.getElementById('knowledgeDoc');
+        const userInput = document.getElementById('userInput');
+        const userInputError = document.getElementById('userInputError');
+        const suggestionsContainer = document.getElementById('suggestionsContainer');
+        const suggestionButtons = document.querySelectorAll('.suggestion-button');
+        const arrowConnectors = document.querySelectorAll('.arrow-connector');
+
+        const getStepElement = (stepNum) => {
+            if (stepNum === 6 || stepNum === 7) return document.getElementById('step67');
+            return document.getElementById(`step${stepNum}`);
+        }
+
+        const contentElementIds = {
+            1: 'knowledgeDoc',
+            2: 'chunks',
+            3: 'vectorDb',
+            4: 'userInput',
+            5: 'inputEmbedding',
+            67: 'retrievedKnowledge',
+            8: 'combinedPrompt',
+            9: 'finalAnswer'
+        };
+
+        const contentElements = Object.entries(contentElementIds).reduce((acc, [step, id]) => {
+            acc[step] = document.getElementById(id);
+            return acc;
+        }, {});
+
+        let currentStep = 0;
+        let knowledgeChunks = [];
+        let knowledgeEmbeddings = {};
+        let vectorDatabase = {};
+        let userQuery = '';
+        let queryEmbeddingVector = [];
+        let queryEmbeddingString = '';
+        let retrievedChunkInfo = {
+            text: '',
+            embedding: '',
+            score: 0
+        };
+        let combinedPromptText = '';
+        let answer = '';
+        let simulationTimeout = null;
+
+        const embeddingDimension = 12;
+        const topicDimensions = {
+            'sun': 0, 'mercury': 1, 'venus': 2, 'earth': 3, 'mars': 4,
+            'jupiter': 5, 'saturn': 6, 'uranus_neptune': 7,
+            'asteroid_belt': 8, 'kuiper_oort': 9,
+            'properties': 10,
+            'features': 11
+        };
+
+        const dimensionKeywords = {
+            0: ['sun', 'star', 'yellow dwarf', 'mass'],
+            1: ['mercury'],
+            2: ['venus', 'hot', 'atmosphere', 'toxic'],
+            3: ['earth', 'life', 'water'],
+            4: ['mars', 'red planet'],
+            5: ['jupiter', 'galilean', 'io', 'europa', 'ganymede', 'callisto', 'magnetic field'],
+            6: ['saturn', 'rings', 'titan'],
+            7: ['uranus', 'neptune', 'ice giant', 'methane', 'blue', 'rotate', 'collision', 'windy', 'storm'],
+            8: ['asteroid', 'belt', 'ceres', 'rocky bodies'],
+            9: ['kuiper', 'oort', 'pluto', 'eris', 'comet', 'icy bodies'],
+            10: ['gravity', 'orbit', 'star', 'mass', 'rocky', 'gas', 'ice', 'terrestrial', 'giant', 'solar', 'system', 'planet'],
+            11: ['moons', 'rings', 'hot', 'life', 'red', 'atmosphere', 'collision', 'windy', 'magnetic field']
+        };
+
+
+        const defaultKnowledge = `Our Solar System is a vast and fascinating place, centered around the Sun, a G-type main-sequence star (yellow dwarf) that contains 99.86% of the system's known mass. The Sun's gravity holds everything together, from the largest planets to the smallest debris. There are eight planets officially recognized. In order from the Sun, they are Mercury, Venus, Earth, and Mars – the inner, rocky (terrestrial) planets. Beyond Mars lies the main asteroid belt, a region populated by millions of rocky bodies, remnants from the Solar System's early formation. Ceres, the largest object in the asteroid belt, is classified as a dwarf planet. Following the asteroid belt are the outer planets: Jupiter, Saturn, Uranus, and Neptune. These are the gas giants (Jupiter, Saturn) and ice giants (Uranus, Neptune), much larger than the terrestrial planets and composed mainly of gases and ices. Jupiter is the largest planet by a significant margin, possessing a strong magnetic field and numerous moons, including the four large Galilean moons (Io, Europa, Ganymede, Callisto). Saturn is famous for its stunning and complex ring system, composed mostly of ice particles with some rock debris and dust. It also has many moons, including the large moon Titan, which has a substantial atmosphere. Uranus and Neptune, the ice giants, are colder and have atmospheres containing methane, which gives them their blueish hues. Uranus is unique for rotating on its side, possibly due to a massive collision early in its history. Neptune is the windiest planet, with supersonic storms raging in its atmosphere. Beyond Neptune lies the Kuiper Belt, another disk-shaped region of icy bodies, including dwarf planets like Pluto, Eris, Makemake, and Haumea. Even further out is the theoretical Oort Cloud, a giant spherical shell of icy objects thought to be the source of long-period comets. The entire Solar System is constantly in motion, with planets orbiting the Sun and moons orbiting their planets, all part of the Milky Way galaxy.`;
+
+        function chunkText(text, sentencesPerChunk = 3) {
+            const sentences = text.match(/[^.!?]+[.!?]?\s*/g) || [text];
+            const trimmedSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
+            const chunks = [];
+            for (let i = 0; i < trimmedSentences.length; i += sentencesPerChunk) {
+                const chunkSentences = trimmedSentences.slice(i, i + sentencesPerChunk);
+                chunks.push(chunkSentences.join(' '));
+            }
+            return chunks;
+        }
+
+        function simulateEmbedding(text) {
+            const vector = new Array(embeddingDimension).fill(0);
+            if (!text) return { vector, string: `[${vector.map(v => v.toFixed(2)).join(', ')}]` };
+
+            const lowerText = text.toLowerCase();
+            let magnitude = 0;
+
+            for (const dimIndexStr in dimensionKeywords) {
+                const dimIndex = parseInt(dimIndexStr, 10);
+                let score = 0;
+                dimensionKeywords[dimIndex].forEach(keyword => {
+                    const regex = new RegExp(`\\b${keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'gi');
+                    const matches = lowerText.match(regex);
+                    if (matches) {
+                        score += matches.length;
+                    }
+                });
+                 score += (Math.random() - 0.5) * 0.1;
+                 score = Math.max(0, score);
+
+                vector[dimIndex] = score;
+                magnitude += score * score;
+            }
+
+            magnitude = Math.sqrt(magnitude);
+            if (magnitude > 0) {
+                for (let i = 0; i < embeddingDimension; i++) {
+                    vector[i] /= magnitude;
+                }
+            }
+
+            const stringRepresentation = `[${vector.map(v => v.toFixed(2)).join(', ')}]`;
+            return { vector, string: stringRepresentation };
+        }
+
+        function calculateSimilarity(vec1, vec2) {
+            if (!vec1 || !vec2 || vec1.length !== vec2.length || vec1.length === 0) {
+                console.error("Invalid vectors for similarity calculation:", vec1, vec2);
+                return 0;
+            }
+
+            let dotProduct = 0;
+            let magnitude1 = 0;
+            let magnitude2 = 0;
+
+            for (let i = 0; i < vec1.length; i++) {
+                dotProduct += vec1[i] * vec2[i];
+                magnitude1 += vec1[i] * vec1[i];
+                magnitude2 += vec2[i] * vec2[i];
+            }
+
+            magnitude1 = Math.sqrt(magnitude1);
+            magnitude2 = Math.sqrt(magnitude2);
+
+            if (magnitude1 === 0 || magnitude2 === 0) {
+                return 0;
+            }
+
+            const similarity = dotProduct / (magnitude1 * magnitude2);
+            return Math.max(0, Math.min(1, similarity));
+        }
+
+        function simulateVectorSearch(queryVec, db) {
+             let bestMatchIndex = -1;
+             let highestScore = -1;
+
+             if (!queryVec || Object.keys(db).length === 0 || queryVec.length === 0) {
+                 return { index: -1, score: 0 };
+             }
+
+             for (const indexStr in db) {
+                 const index = parseInt(indexStr, 10);
+                 const chunkVec = db[index];
+                 if (!chunkVec || chunkVec.length !== queryVec.length) continue;
+
+                 const score = calculateSimilarity(queryVec, chunkVec);
+
+                 if (score > highestScore) {
+                     highestScore = score;
+                     bestMatchIndex = index;
+                 }
+             }
+
+             if (bestMatchIndex === -1 || highestScore <= 0) {
+                 return { index: -1, score: 0 };
+             }
+
+             return { index: bestMatchIndex, score: highestScore };
+         }
+
+        function simulateLLM(prompt) {
+            const contextMatch = prompt.match(/Context:\s*(.*?)\s*Question:/is);
+            const questionMatch = prompt.match(/Question:\s*(.*?)\s*Answer:/is);
+            const context = contextMatch ? contextMatch[1].toLowerCase().trim() : 'no context found.';
+            const question = questionMatch ? questionMatch[1].toLowerCase().trim() : '';
+
+            if (context === 'no context found.' || context === '') {
+                 return `I apologize, but no relevant context was retrieved to answer the question: "${question}".`;
+            }
+
+            if (question.includes("closest") && question.includes("sun")) {
+                if (context.includes("mercury") && context.includes("order from the sun")) return "Based on the context provided, Mercury is the first planet in order from the Sun, making it the closest.";
+                if (context.includes("mercury")) return "The context mentions Mercury. It is generally known as the closest planet.";
+                 return "The retrieved context does not explicitly state which planet is closest to the Sun.";
+            }
+            if (question.includes("red planet")) {
+                 if (context.includes("mars") && context.includes("red planet")) return "The context explicitly states that Mars is often called the 'Red Planet'.";
+                 if (context.includes("mars")) return "The context discusses Mars. Mars is known as the Red Planet.";
+                 return "The retrieved context does not seem to mention the 'Red Planet' or Mars.";
+            }
+             if (question.includes("asteroid belt")) {
+                 if (context.includes("asteroid belt") && context.includes("beyond mars")) return "According to the context, the main asteroid belt, containing objects like Ceres, lies beyond Mars.";
+                 if (context.includes("asteroid belt")) return "The context mentions the asteroid belt, a region of rocky bodies.";
+                  return "The retrieved context does not describe the asteroid belt.";
+            }
+             if (question.includes("saturn") && question.includes("rings")) {
+                 if (context.includes("saturn") && context.includes("ring system") && context.includes("ice particles")) return "The context states Saturn is famous for its complex ring system, composed mostly of ice particles with some rock debris.";
+                 if (context.includes("saturn") && context.includes("rings")) return "The context mentions Saturn and its rings.";
+                 return "The retrieved context does not provide details about Saturn's rings.";
+            }
+            if (question.includes("jupiter") && question.includes("moons")) {
+                 if (context.includes("jupiter") && context.includes("galilean moons") && context.includes("io") && context.includes("europa")) return `The context states Jupiter has numerous moons, specifically mentioning the four large Galilean moons: Io, Europa, Ganymede, and Callisto.`;
+                 if (context.includes("jupiter") && context.includes("many moons")) return `The context mentions Jupiter has many moons.`;
+                 return "The retrieved context does not provide specific details about Jupiter's moons.";
+            }
+            if (question.includes("largest animal")) {
+                 if (context.includes("solar system") || context.includes("planet") || context.includes("sun")) {
+                     return `The retrieved context discusses the Solar System and planets, not Earth's animals. Therefore, I cannot answer your question about the largest animal based on this information.`;
+                 }
+                 return `The context provided ("${context.substring(0,60)}...") does not seem relevant to Earth animals.`;
+            }
+
+            return `Based on the retrieved context ("${context.substring(0, 60)}..."), I will attempt to answer your question about "${question}". (Simulated generic LLM response)`;
+        }
+
+        function setContent(element, content, isHtml = false) {
+            if (!element) return;
+            const displayElement = element.classList.contains('content-display') ? element : element.querySelector('.content-display');
+            const target = displayElement || element;
+            target.classList.add('fade-out');
+            setTimeout(() => {
+                if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+                    target.value = content || '';
+                } else if (isHtml) {
+                    target.innerHTML = content || '';
+                } else {
+                    target.textContent = content || '';
+                }
+                if (!content && target.classList.contains('content-display') && target.hasAttribute('placeholder')) {
+                   target.innerHTML = '';
+                }
+                target.classList.remove('fade-out');
+            }, 150);
+        }
+
+        function resetPhase2() {
+            userQuery = '';
+            queryEmbeddingVector = [];
+            queryEmbeddingString = '';
+            retrievedChunkInfo = { text: '', embedding: '', score: 0 };
+            combinedPromptText = '';
+            answer = '';
+
+            setContent(contentElements[4], '');
+            setContent(contentElements[5], '');
+            setContent(contentElements[67], '');
+            setContent(contentElements[8], '');
+            setContent(contentElements[9], '');
+
+             for (let i = 4; i <= 9; i++) {
+                const stepEl = getStepElement(i);
+                if (stepEl) {
+                    stepEl.classList.remove('step-active', 'step-complete');
+                }
+            }
+             const phase2Row = document.getElementById('step4').closest('.process-row');
+             phase2Row?.querySelectorAll('.arrow-connector').forEach(arrow => arrow.classList.remove('active'));
+
+        }
+
+        function updateUI() {
+            clearTimeout(simulationTimeout);
+
+            const limit = (currentStep > 3) ? 4 : currentStep;
+            for (let i = 1; i < limit; i++) {
+                 const stepEl = getStepElement(i);
+                 if (stepEl) {
+                     stepEl.classList.remove('step-active', 'step-complete');
+                 }
+             }
+             for (let i = currentStep; i <= 9; i++) {
+                 const stepEl = getStepElement(i);
+                 if (stepEl) {
+                     stepEl.classList.remove('step-active', 'step-complete');
+                 }
+             }
+            arrowConnectors.forEach(arrow => arrow.classList.remove('active'));
+
+            allNextButtonContainers.forEach(container => {
+                container.classList.add('hidden');
+                const button = container.querySelector('.next-step-button');
+                if (button) button.disabled = true;
+            });
+            newQueryButtonContainer.classList.add('hidden');
+
+
+            if (currentStep === 0) {
+                knowledgeChunks = [];
+                knowledgeEmbeddings = {};
+                vectorDatabase = {};
+                resetPhase2();
+
+                setContent(contentElements[1], defaultKnowledge);
+                setContent(contentElements[2], '', true);
+                setContent(contentElements[3], '', true);
+
+
+                statusMessage.textContent = 'Click "Start Simulation" to begin.';
+                startButton.disabled = false;
+                knowledgeDocInput.disabled = false;
+                userInput.disabled = true;
+                suggestionsContainer.classList.add('hidden');
+
+                return;
+            }
+
+            const activeStepEl = getStepElement(currentStep);
+            if (activeStepEl) {
+                activeStepEl.classList.add('step-active');
+                 const parentRow = activeStepEl.closest('.process-row');
+                 parentRow?.querySelectorAll('.arrow-connector').forEach(arrow => {
+                     arrow.classList.add('active');
+                 });
+            }
+
+            for (let i = 1; i < currentStep; i++) {
+                const completedStepEl = getStepElement(i);
+                if (completedStepEl && !completedStepEl.classList.contains('step-active')) {
+                    completedStepEl.classList.add('step-complete');
+                     let container = completedStepEl.closest('.step-container');
+                     let nextSibling = container?.nextElementSibling;
+                     while(nextSibling && !nextSibling.classList.contains('step-container')) {
+                        if(nextSibling.classList.contains('arrow-connector')) {
+                            nextSibling.classList.add('active');
+                            break;
+                        }
+                        nextSibling = nextSibling.nextElementSibling;
+                     }
+                }
+            }
+            if (currentStep >= 8 && getStepElement(67)) {
+                 getStepElement(67).classList.add('step-complete');
+                 let container = getStepElement(67).closest('.step-container');
+                 let nextSibling = container?.nextElementSibling;
+                 while(nextSibling && !nextSibling.classList.contains('step-container')) {
+                    if(nextSibling.classList.contains('arrow-connector')) {
+                        nextSibling.classList.add('active');
+                        break;
+                    }
+                    nextSibling = nextSibling.nextElementSibling;
+                 }
+            }
+             if (currentStep >= 4) {
+                 for (let i = 1; i <= 3; i++) {
+                     const phase1Step = getStepElement(i);
+                     if (phase1Step) phase1Step.classList.add('step-complete');
+                     let container = phase1Step.closest('.step-container');
+                     let nextSibling = container?.nextElementSibling;
+                      while(nextSibling && !nextSibling.classList.contains('step-container')) {
+                        if(nextSibling.classList.contains('arrow-connector')) {
+                            nextSibling.classList.add('active');
+                            break;
+                        }
+                        nextSibling = nextSibling.nextElementSibling;
+                     }
+                 }
+             }
+
+            setContent(contentElements[2], knowledgeChunks.length > 0 ? knowledgeChunks.map((chunk, i) => `<div class="chunk-item">${i + 1}. ${chunk}</div>`).join('') : '', true);
+             const vectorDbHTML = Object.keys(vectorDatabase).length > 0 && knowledgeChunks.length > 0 ? knowledgeChunks.map((chunk, index) => {
+                 const embeddingString = knowledgeEmbeddings.hasOwnProperty(index) ? knowledgeEmbeddings[index].string : '[...]';
+                 return `<div class="chunk-vector-item">
+                             <span class="chunk-text">${index + 1}. ${chunk}</span>
+                             <span class="vector-rep">Embedding: ${embeddingString}</span>
+                         </div>`;
+             }).join('') : '';
+             setContent(contentElements[3], vectorDbHTML, true);
+            setContent(contentElements[5], queryEmbeddingString);
+
+            let retrievedHTML = '';
+            if (currentStep >= 7 && retrievedChunkInfo.text) {
+                 retrievedHTML = `
+                    <div>
+                        <span class="info-label">Query Embedding:</span>
+                        <span class="info-content">${queryEmbeddingString || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <span class="info-label">Retrieved Chunk:</span>
+                        <span class="info-content chunk-text">${retrievedChunkInfo.text}</span>
+                    </div>
+                     <div>
+                        <span class="info-label">Chunk Embedding:</span>
+                        <span class="info-content">${retrievedChunkInfo.embedding || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <span class="info-label">Similarity Score:</span>
+                        <span class="info-content score">${retrievedChunkInfo.score.toFixed(3)}</span>
+                    </div>
+                 `;
+            } else if (currentStep >= 7) {
+                 retrievedHTML = `<div class="not-found">No relevant chunk found (Score: ${retrievedChunkInfo.score.toFixed(3)}).</div>`;
+            }
+            setContent(contentElements[67], retrievedHTML, true);
+
+            setContent(contentElements[8], combinedPromptText ? combinedPromptText.replace(/\n/g, '<br>') : '', true);
+            setContent(contentElements[9], answer);
+
+            updateStatusMessage();
+            startButton.disabled = true;
+            knowledgeDocInput.disabled = true;
+            userInput.disabled = currentStep !== 4;
+            userInputError.classList.add('hidden');
+
+            if (currentStep === 4) {
+                suggestionsContainer.classList.remove('hidden');
+                userInput.focus();
+            } else {
+                suggestionsContainer.classList.add('hidden');
+            }
+
+            if (currentStep === 9) {
+                newQueryButtonContainer.classList.remove('hidden');
+                newQueryButton.disabled = false;
+            } else if (currentStep < 9) {
+                let buttonStepToShow = currentStep;
+                if (currentStep === 6) {
+                    buttonStepToShow = null;
+                } else if (currentStep === 7) {
+                    buttonStepToShow = '67';
+                }
+
+                if (buttonStepToShow !== null) {
+                    const currentContainer = document.querySelector(`.next-button-container[data-step="${buttonStepToShow}"]`);
+                    if (currentContainer) {
+                        currentContainer.classList.remove('hidden');
+                        const button = currentContainer.querySelector('.next-step-button');
+                        if (button) {
+                            button.disabled = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateStatusMessage() {
+             const messages = [
+                 "Simulation Reset. Click Start.",
+                 "Step 1: Processing knowledge document...",
+                 "Step 2: Chunking document...",
+                 "Step 3: Storing chunk embeddings in Vector DB...",
+                 "Step 4: Please enter your query or select a suggestion.",
+                 "Step 5: Simulating topic-based embedding for query...",
+                 "Step 6/7: Simulating Vector DB query & similarity...",
+                 "Step 6/7: ...Retrieved relevant knowledge chunk.",
+                 "Step 8: Augmenting LLM prompt with context...",
+                 "Step 9: Simulating final answer generation...",
+                 "Simulation Complete! Click 'Run New Query' or 'Reset All'."
+             ];
+             statusMessage.textContent = messages[currentStep] || messages[10];
+         }
+
+        startButton.addEventListener('click', () => {
+            if (currentStep === 0) {
+                currentStep = 1;
+                const knowledgeText = knowledgeDocInput.value.trim() || defaultKnowledge;
+                knowledgeDocInput.value = knowledgeText;
+                updateUI();
+            }
+        });
+
+        nextButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (currentStep >= 9) return;
+
+                if (currentStep === 4) {
+                    userQuery = userInput.value.trim();
+                    if (!userQuery) {
+                        userInputError.textContent = "Please enter a query or select a suggestion.";
+                        userInputError.classList.remove('hidden');
+                        userInput.focus();
+                        return;
+                    } else {
+                        userInputError.classList.add('hidden');
+                    }
+                }
+
+                if (currentStep === 1) {
+                    setContent(contentElements[2], '', true);
+                    knowledgeChunks = [];
+                }
+                else if (currentStep === 2) {
+                    setContent(contentElements[3], '', true);
+                    vectorDatabase = {};
+                }
+                 else if (currentStep === 5) {
+                    setContent(contentElements[67], '', true);
+                    retrievedChunkInfo = { text: '', embedding: '', score: 0 };
+                }
+
+
+                const previousStep = currentStep;
+                currentStep++;
+                button.disabled = true;
+                button.closest('.next-button-container')?.classList.add('hidden');
+
+
+                let stepDelay = 300;
+                let action = () => {};
+
+                switch (currentStep) {
+                    case 2:
+                        action = () => {
+                            const knowledgeText = knowledgeDocInput.value.trim() || defaultKnowledge;
+                            knowledgeChunks = chunkText(knowledgeText, 3);
+                            knowledgeEmbeddings = {};
+                            knowledgeChunks.forEach((chunk, index) => {
+                                knowledgeEmbeddings[index] = simulateEmbedding(chunk);
+                            });
+                        };
+                        break;
+                    case 3:
+                        action = () => {
+                            vectorDatabase = {};
+                            for (const index in knowledgeEmbeddings) {
+                                vectorDatabase[index] = knowledgeEmbeddings[index].vector;
+                            }
+                        };
+                        break;
+                    case 4:
+                        stepDelay = 50;
+                        action = () => {};
+                        break;
+                    case 5:
+                        action = () => {
+                            const embeddingResult = simulateEmbedding(userQuery);
+                            queryEmbeddingVector = embeddingResult.vector;
+                            queryEmbeddingString = embeddingResult.string;
+                        };
+                        break;
+                    case 6:
+                        stepDelay = 500;
+                        action = () => {};
+                        break;
+                    case 7:
+                        action = () => {}; // Action performed in timeout callback
+                        stepDelay = 0;
+                        break;
+                    case 8:
+                        action = () => {
+                            combinedPromptText = `Context:\n${retrievedChunkInfo.text || 'No context found.'}\n\n---\n\nQuestion:\n${userQuery}\n\n---\n\nAnswer:`;
+                        };
+                        break;
+                    case 9:
+                        stepDelay = 600;
+                        action = () => {
+                            answer = simulateLLM(combinedPromptText);
+                        };
+                        break;
+                }
+
+                updateStatusMessage();
+
+                simulationTimeout = setTimeout(() => {
+                    action();
+
+                    if (previousStep === 5 && currentStep === 6) {
+                        currentStep = 7;
+                        const searchResult = simulateVectorSearch(queryEmbeddingVector, vectorDatabase);
+                        if (searchResult.index !== -1 && knowledgeChunks[searchResult.index]) {
+                             retrievedChunkInfo.text = knowledgeChunks[searchResult.index];
+                             retrievedChunkInfo.embedding = knowledgeEmbeddings[searchResult.index]?.string || 'N/A';
+                             retrievedChunkInfo.score = searchResult.score;
+                        } else {
+                             retrievedChunkInfo = { text: '', embedding: '', score: searchResult.score };
+                             console.log("No relevant chunk found or index out of bounds.");
+                        }
+                        updateStatusMessage();
+                        updateUI();
+                    } else if (currentStep !== 7) {
+                        updateUI();
+                    }
+
+                }, stepDelay);
+            });
+        });
+
+        newQueryButton.addEventListener('click', () => {
+            resetPhase2();
+            currentStep = 4;
+            updateUI();
+        });
+
+        resetButton.addEventListener('click', () => {
+            currentStep = 0;
+            updateUI();
+        });
+
+        suggestionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                 if (currentStep === 4) {
+                    userInput.value = button.getAttribute('data-query');
+                    userInputError.classList.add('hidden');
+                    userInput.focus();
+                 }
+            });
+        });
+
+        lucide.createIcons();
+        updateUI();
+
+    </script>
+
+</body>
+</html>
