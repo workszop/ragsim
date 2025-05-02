@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive RAG Simulator - Layout Fix</title>
+    <title>Interactive RAG Simulator - Vertical Layout</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide-react@0.378.0/dist/umd/lucide.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
             padding: 1rem;
             position: relative;
             overflow: hidden;
-            /* Removed margin-bottom here, handled by step-container */
+            width: 100%; /* Ensure step takes full width */
         }
         .step-active {
             border-color: #3b82f6;
@@ -155,7 +155,8 @@
             color: #cbd5e1;
             flex-shrink: 0;
             transition: color 0.3s ease;
-            margin-bottom: 1rem;
+            margin: 1rem 0; /* Vertical margin only */
+            transform: rotate(90deg); /* Always point down */
         }
         .arrow-connector.active {
              color: #3b82f6;
@@ -164,79 +165,40 @@
             width: 2rem;
             height: 2rem;
         }
+        .arrow-connector.horizontal {
+            display: none !important; /* Force hide horizontal arrows */
+        }
+        .arrow-connector.vertical {
+            display: flex !important; /* Force show vertical arrows */
+        }
 
-        /* Base layout (Mobile First) */
+        /* Base layout */
         .process-row {
              display: flex;
-             flex-direction: column; /* Stack vertically by default */
-             align-items: stretch;
-             gap: 0; /* Remove gap, handled by margins */
+             flex-direction: column; /* Always stack vertically */
+             align-items: center; /* Center items horizontally */
+             gap: 0;
         }
          .step-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
+            max-width: 450px; /* Optional: Max width for steps */
+            margin-bottom: 1rem; /* Space below step container (before arrow) */
          }
         .step {
              width: 100%;
-             margin-bottom: 0; /* Remove margin below step */
+             margin-bottom: 0;
         }
-         .arrow-connector.horizontal {
-            display: none; /* Hide horizontal */
-        }
-        .arrow-connector.vertical {
-             margin: 1rem 0;
-             transform: rotate(90deg);
-             display: flex; /* Show vertical */
-             margin-bottom: 1rem;
-        }
+
          .button-action-container {
-             margin-top: 1rem;
-             margin-bottom: 1rem;
+             margin-top: 1rem; /* Space between step and button */
+             /* margin-bottom removed, handled by step-container margin */
          }
 
-        /* Desktop layout adjustments */
-        @media (min-width: 1024px) {
-            .process-row {
-                 flex-direction: row; /* Arrange horizontally */
-                 align-items: flex-start; /* Align tops */
-                 justify-content: center;
-                 /* gap: 0; */ /* Removed gap, using arrow margins */
-             }
-            .step-container {
-                /* display: flex; */ /* Already flex from base */
-                /* flex-direction: column; */ /* Already column from base */
-                /* align-items: center; */ /* Already center from base */
-                width: 240px; /* Fixed width for step container */
-                flex-shrink: 0; /* Prevent shrinking */
-            }
-            /* .step { */
-                /* width: 100%; */ /* Already 100% from base */
-                /* margin-bottom: 0; */ /* Already 0 from base */
-            /* } */
-            .arrow-connector.horizontal {
-                margin: 0 1.5rem; /* Horizontal spacing */
-                padding-top: 80px; /* Align arrow vertically */
-                display: flex; /* Show horizontal */
-                margin-bottom: 0; /* Remove bottom margin */
-                align-self: flex-start; /* Align arrow to top */
-            }
-            .arrow-connector.vertical {
-                display: none; /* Hide vertical */
-            }
-            #step4 {
-                 min-height: 220px;
-            }
-            .step-container .button-action-container {
-                 margin-top: 1rem; /* Space between step and button */
-                 margin-bottom: 0; /* No extra margin needed below button on desktop */
-            }
-             #newQueryButtonContainer {
-                 margin-top: 1.5rem;
-                 margin-bottom: 1rem;
-            }
-        }
+        /* Remove desktop-specific layout overrides */
+        /* @media (min-width: 1024px) { ... } block removed */
 
         .icon {
             width: 1.125rem;
@@ -413,7 +375,7 @@
 
         <section aria-labelledby="phase1-title">
             <h2 id="phase1-title" class="text-2xl font-semibold mb-5 text-slate-800 text-center">Phase 1: Knowledge Preparation</h2>
-            <div class="process-row items-center justify-center">
+            <div class="process-row">
                 <div class="step-container">
                     <div id="step1" class="step">
                         <h3 class="step-title"><i data-lucide="file-text" class="icon"></i>1. Knowledge Doc</h3>
@@ -426,7 +388,6 @@
                     </div>
                 </div>
 
-                <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
 
                 <div class="step-container">
@@ -441,7 +402,6 @@
                     </div>
                 </div>
 
-                <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
 
                 <div class="step-container">
@@ -460,7 +420,7 @@
 
         <section aria-labelledby="phase2-title">
              <h2 id="phase2-title" class="text-2xl font-semibold mb-5 text-slate-800 text-center">Phase 2: Querying & Generation</h2>
-             <div class="process-row items-center justify-center flex-wrap">
+             <div class="process-row">
                  <div class="step-container">
                      <div id="step4" class="step">
                         <h3 class="step-title"><i data-lucide="user" class="icon"></i>4. User Query</h3>
@@ -481,7 +441,6 @@
                      </div>
                  </div>
 
-                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
                  <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
 
                  <div class="step-container">
@@ -496,7 +455,6 @@
                      </div>
                  </div>
 
-                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
                  <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
 
                  <div class="step-container">
@@ -510,7 +468,6 @@
                      </div>
                  </div>
 
-                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
                  <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
 
                  <div class="step-container">
@@ -525,7 +482,6 @@
                      </div>
                  </div>
 
-                 <div class="arrow-connector horizontal"><i data-lucide="arrow-right-circle"></i></div>
                  <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
 
                  <div class="step-container">
@@ -552,6 +508,7 @@
 
 
     <script>
+        // --- DOM Element References ---
         const startButton = document.getElementById('startButton');
         const nextButtons = document.querySelectorAll('.next-step-button');
         const allNextButtonContainers = document.querySelectorAll('.next-button-container');
@@ -566,11 +523,13 @@
         const suggestionButtons = document.querySelectorAll('.suggestion-button');
         const arrowConnectors = document.querySelectorAll('.arrow-connector');
 
+        // Helper function to get step element
         const getStepElement = (stepNum) => {
             if (stepNum === 6 || stepNum === 7) return document.getElementById('step67');
             return document.getElementById(`step${stepNum}`);
         }
 
+        // Map step numbers to their content display element IDs
         const contentElementIds = {
             1: 'knowledgeDoc',
             2: 'chunks',
@@ -582,11 +541,13 @@
             9: 'finalAnswer'
         };
 
+        // Get references to the content display elements
         const contentElements = Object.entries(contentElementIds).reduce((acc, [step, id]) => {
             acc[step] = document.getElementById(id);
             return acc;
         }, {});
 
+        // --- State Variables ---
         let currentStep = 0;
         let knowledgeChunks = [];
         let knowledgeEmbeddings = {};
@@ -603,6 +564,7 @@
         let answer = '';
         let simulationTimeout = null;
 
+        // --- Embedding Simulation Setup ---
         const embeddingDimension = 12;
         const topicDimensions = {
             'sun': 0, 'mercury': 1, 'venus': 2, 'earth': 3, 'mars': 4,
@@ -630,6 +592,7 @@
 
         const defaultKnowledge = `Our Solar System is a vast and fascinating place, centered around the Sun, a G-type main-sequence star (yellow dwarf) that contains 99.86% of the system's known mass. The Sun's gravity holds everything together, from the largest planets to the smallest debris. There are eight planets officially recognized. In order from the Sun, they are Mercury, Venus, Earth, and Mars – the inner, rocky (terrestrial) planets. Beyond Mars lies the main asteroid belt, a region populated by millions of rocky bodies, remnants from the Solar System's early formation. Ceres, the largest object in the asteroid belt, is classified as a dwarf planet. Following the asteroid belt are the outer planets: Jupiter, Saturn, Uranus, and Neptune. These are the gas giants (Jupiter, Saturn) and ice giants (Uranus, Neptune), much larger than the terrestrial planets and composed mainly of gases and ices. Jupiter is the largest planet by a significant margin, possessing a strong magnetic field and numerous moons, including the four large Galilean moons (Io, Europa, Ganymede, Callisto). Saturn is famous for its stunning and complex ring system, composed mostly of ice particles with some rock debris and dust. It also has many moons, including the large moon Titan, which has a substantial atmosphere. Uranus and Neptune, the ice giants, are colder and have atmospheres containing methane, which gives them their blueish hues. Uranus is unique for rotating on its side, possibly due to a massive collision early in its history. Neptune is the windiest planet, with supersonic storms raging in its atmosphere. Beyond Neptune lies the Kuiper Belt, another disk-shaped region of icy bodies, including dwarf planets like Pluto, Eris, Makemake, and Haumea. Even further out is the theoretical Oort Cloud, a giant spherical shell of icy objects thought to be the source of long-period comets. The entire Solar System is constantly in motion, with planets orbiting the Sun and moons orbiting their planets, all part of the Milky Way galaxy.`;
 
+        // --- Simulation Functions ---
         function chunkText(text, sentencesPerChunk = 3) {
             const sentences = text.match(/[^.!?]+[.!?]?\s*/g) || [text];
             const trimmedSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
@@ -776,6 +739,7 @@
             return `Based on the retrieved context ("${context.substring(0, 60)}..."), I will attempt to answer your question about "${question}". (Simulated generic LLM response)`;
         }
 
+        // --- UI Update Functions ---
         function setContent(element, content, isHtml = false) {
             if (!element) return;
             const displayElement = element.classList.contains('content-display') ? element : element.querySelector('.content-display');
@@ -870,9 +834,17 @@
             const activeStepEl = getStepElement(currentStep);
             if (activeStepEl) {
                 activeStepEl.classList.add('step-active');
-                 const parentRow = activeStepEl.closest('.process-row');
-                 parentRow?.querySelectorAll('.arrow-connector').forEach(arrow => {
-                     arrow.classList.add('active');
+                 // Only activate vertical arrows
+                 document.querySelectorAll('.arrow-connector.vertical').forEach(arrow => {
+                     // Activate if it's before the current step's container
+                     const stepNum = parseInt(arrow.previousElementSibling?.querySelector('.next-button-container')?.dataset.step || '0', 10);
+                     const nextStepNum = parseInt(arrow.nextElementSibling?.querySelector('.step')?.id.replace('step','') || '0', 10);
+
+                     if (stepNum < currentStep && nextStepNum >= currentStep) {
+                          arrow.classList.add('active');
+                     } else if (currentStep > 3 && stepNum === 3 && currentStep >= 4) { // Activate arrow between phases
+                          arrow.classList.add('active');
+                     }
                  });
             }
 
@@ -880,6 +852,7 @@
                 const completedStepEl = getStepElement(i);
                 if (completedStepEl && !completedStepEl.classList.contains('step-active')) {
                     completedStepEl.classList.add('step-complete');
+                     // Activate the arrow *immediately following* the completed step's container
                      let container = completedStepEl.closest('.step-container');
                      let nextSibling = container?.nextElementSibling;
                      while(nextSibling && !nextSibling.classList.contains('step-container')) {
