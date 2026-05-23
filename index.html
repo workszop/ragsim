@@ -1,515 +1,840 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive RAG Simulator - Vertical Layout</title>
+    <title>Symulator RAG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide-react@0.378.0/dist/umd/lucide.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #334155;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:          #f7f7fa;
+            --surface:     #ffffff;
+            --surface-2:   #ebebf0;
+            --border:      #b8b8c4;
+            --border-dim:  #d2d2db;
+            --text:        #000000;
+            --text-muted:  #1f1f2a;
+            --text-subtle: #4d4d5c;
+            --blue:        #1d4ed8;
+            --blue-dim:    rgba(29,78,216,0.09);
+            --blue-border: rgba(29,78,216,0.45);
+            --green:       #15803d;
+            --green-dim:   rgba(21,128,61,0.1);
+            --green-border:rgba(21,128,61,0.5);
+            --red:         #b91c1c;
         }
-        .step {
-            transition: all 0.3s ease-in-out;
-            border: 1px solid #e2e8f0;
-            min-height: 180px;
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            padding: 0;
+        }
+
+        /* Top gradient line */
+        .top-bar {
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .page-wrap {
+            padding: 2.5rem 1.25rem 3rem;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        /* ── HEADER ─────────────────────────────── */
+        header {
+            margin-bottom: 2.5rem;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--blue);
+            border: 1px solid var(--blue-border);
+            border-radius: 9999px;
+            padding: 0.2rem 0.65rem;
+            margin-bottom: 1rem;
+            background: var(--blue-dim);
+        }
+
+        .header-badge svg {
+            width: 0.65rem;
+            height: 0.65rem;
+        }
+
+        h1 {
+            font-size: clamp(1.75rem, 6vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            color: var(--text);
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-sub {
+            margin-top: 0.6rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.55;
+            max-width: 420px;
+        }
+
+        /* ── CONTROLS ───────────────────────────── */
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .btn svg { width: 0.875rem; height: 0.875rem; flex-shrink: 0; }
+        .btn:hover:not(:disabled) {
+            background: var(--surface-2);
+            border-color: #3a3a44;
+            color: var(--text);
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 2px rgba(29,78,216,0.45); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .btn-primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #1e3a8a;
+            border-color: #1e3a8a;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(29,78,216,0.3);
+        }
+        .btn-primary:disabled { background: var(--text-subtle); border-color: var(--text-subtle); }
+
+        .btn.is-playing {
+            background: var(--green);
+            border-color: var(--green);
+            color: #fff;
+        }
+        .btn.is-playing:hover:not(:disabled) {
+            background: #14532d;
+            border-color: #14532d;
+        }
+        .btn.is-playing svg { animation: spinPulse 1.8s linear infinite; }
+        @keyframes spinPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
+
+        .kbd-hint {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-subtle);
+            margin-left: auto;
+            align-self: center;
+        }
+        .kbd-hint kbd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 0.1rem 0.35rem;
+            margin-right: 0.3rem;
+            color: var(--text-muted);
+        }
+        @media (max-width: 420px) {
+            .kbd-hint { display: none; }
+        }
+
+        .btn-success {
+            background: var(--green);
+            border-color: var(--green);
+            color: #fff;
+        }
+        .btn-success:hover:not(:disabled) {
+            background: #14532d;
+            border-color: #14532d;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(21,128,61,0.28);
+        }
+
+        /* ── STATUS ─────────────────────────────── */
+        #statusMessage {
+            min-height: 1.75rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-text {
+            font-size: 0.78rem;
+            color: var(--text-subtle);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status-text::before {
+            content: '›';
+            margin-right: 0.4rem;
+            color: var(--blue);
+            font-weight: 700;
+        }
+
+        /* ── PHASE DIVIDER ──────────────────────── */
+        .phase-divider {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            margin-top: 0.25rem;
+        }
+
+        .phase-divider:not(:first-child) {
+            margin-top: 2.5rem;
+        }
+
+        .phase-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            white-space: nowrap;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .phase-tag strong {
+            color: var(--blue);
+        }
+
+        .phase-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border-dim);
+        }
+
+        /* ── STEP CONTAINER ─────────────────────── */
+        .process-row {
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
-            background-color: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            padding: 1rem;
+            align-items: stretch;
+        }
+
+        .step-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── STEP CARD ──────────────────────────── */
+        .step {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.1rem 1.1rem 1.1rem 1.4rem;
             position: relative;
             overflow: hidden;
-            width: 100%; /* Ensure step takes full width */
+            width: 100%;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
         }
+
+        /* left accent bar */
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 12px; bottom: 12px;
+            width: 2.5px;
+            background: var(--border);
+            border-radius: 0 2px 2px 0;
+            transition: background 0.2s ease;
+        }
+
         .step-active {
-            border-color: #3b82f6;
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -4px rgba(59, 130, 246, 0.1);
+            border-color: var(--blue);
+            background: color-mix(in srgb, var(--surface) 92%, var(--blue) 8%);
+            box-shadow: 0 0 0 1px rgba(29,78,216,0.18), 0 8px 22px rgba(15,23,42,0.12);
+            transform: translateY(-2px);
         }
+        .step-active::before { background: var(--blue); }
+
         .step-complete {
-            border-color: #10b981;
-            opacity: 0.9;
+            border-color: var(--green-border);
+            opacity: 0.72;
         }
+        .step-complete::before { background: var(--green); }
+
         .step-complete::after {
             content: '✓';
             position: absolute;
-            top: 8px;
-            right: 8px;
-            color: #10b981;
-            font-weight: bold;
-            font-size: 1.1rem;
+            top: 10px; right: 11px;
+            color: var(--green);
+            font-size: 0.7rem;
+            font-weight: 700;
             opacity: 0;
-            animation: fadeInCheck 0.5s 0.3s ease-out forwards;
+            animation: fadeCheck 0.3s 0.2s ease-out forwards;
         }
-        @keyframes fadeInCheck {
-            to { opacity: 1; }
+
+        @keyframes fadeCheck { to { opacity: 0.8; } }
+
+        /* ── STEP TITLE ─────────────────────────── */
+        .step-title {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            margin-bottom: 0.65rem;
+            padding-bottom: 0.65rem;
+            border-bottom: 1px solid var(--border-dim);
         }
+
+        .step-title .icon {
+            width: 0.8rem;
+            height: 0.8rem;
+            margin: 0;
+            flex-shrink: 0;
+            stroke-width: 2.5;
+        }
+
+        .step-active .step-title { color: #1d4ed8; }
+        .step-active .step-title .icon { color: var(--blue); }
+
+        /* ── CONTENT DISPLAY ────────────────────── */
         .content-display {
-            background-color: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            font-size: 0.875rem;
-            color: #475569;
+            background: var(--surface-2);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.78rem;
+            line-height: 1.65;
+            color: var(--text-muted);
             overflow-y: auto;
             flex-grow: 1;
-            margin-top: 0.75rem;
             opacity: 1;
-            transition: opacity 0.4s ease-in-out;
+            transition: opacity 0.3s ease;
             min-height: 80px;
         }
-        #chunks, #vectorDb {
-             font-size: 0.8rem;
-             line-height: 1.4;
+
+        textarea.content-display {
+            font-family: 'Inter', sans-serif;
+            min-height: 9rem;
+            resize: vertical;
+            color: var(--text-muted);
         }
-        .content-display.fade-out {
-            opacity: 0;
+
+        .content-display:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 2px rgba(29,78,216,0.18);
         }
+
+        .content-display.fade-out { opacity: 0; }
+
         .content-display:empty::before {
             content: attr(placeholder);
-            color: #94a3b8;
+            color: var(--text-subtle);
             font-style: italic;
         }
-        #chunks .chunk-item, #vectorDb .chunk-vector-item {
-            padding: 0.4rem 0.25rem;
-            border-bottom: 1px dashed #e2e8f0;
-        }
-         #chunks .chunk-item:last-child, #vectorDb .chunk-vector-item:last-child {
-            border-bottom: none;
-        }
-         #vectorDb .chunk-text {
-             display: block;
-             margin-bottom: 0.25rem;
-             color: #334155;
-         }
-         #vectorDb .vector-rep {
-             font-size: 0.7rem;
-             color: #64748b;
-             word-break: break-all;
-             font-family: monospace;
-             background-color: #e2e8f0;
-             padding: 0.1rem 0.3rem;
-             border-radius: 0.25rem;
-             display: inline-block;
-         }
-        #retrievedKnowledge {
-             font-size: 0.8rem;
-             line-height: 1.4;
-             text-align: left;
-         }
-         #retrievedKnowledge .info-label {
-             font-weight: 600;
-             color: #1e293b;
-             display: block;
-             margin-top: 0.5rem;
-             margin-bottom: 0.1rem;
-         }
-         #retrievedKnowledge .info-content {
-             font-family: monospace;
-             font-size: 0.75rem;
-             color: #475569;
-             word-break: break-all;
-             background-color: #e2e8f0;
-             padding: 0.2rem 0.4rem;
-             border-radius: 0.25rem;
-             display: inline-block;
-             margin-bottom: 0.5rem;
-         }
-          #retrievedKnowledge .info-content.chunk-text {
-             font-family: inherit;
-             font-size: inherit;
-             background-color: transparent;
-             padding: 0;
-             display: block;
-             border: 1px dashed #cbd5e1;
-             padding: 0.5rem;
-             border-radius: 0.375rem;
-             background-color: #f8fafc;
-         }
-         #retrievedKnowledge .info-content.score {
-             font-family: inherit;
-             font-size: 0.8rem;
-             font-weight: 500;
-             color: #059669;
-             background-color: #d1fae5;
-         }
-         #retrievedKnowledge .not-found {
-             font-style: italic;
-             color: #64748b;
-             text-align: center;
-         }
 
-        .arrow-connector {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #cbd5e1;
-            flex-shrink: 0;
-            transition: color 0.3s ease;
-            margin: 1rem 0; /* Vertical margin only */
-            transform: rotate(90deg); /* Always point down */
-        }
-        .arrow-connector.active {
-             color: #3b82f6;
-        }
-        .arrow-connector svg {
-            width: 2rem;
-            height: 2rem;
-        }
-        .arrow-connector.horizontal {
-            display: none !important; /* Force hide horizontal arrows */
-        }
-        .arrow-connector.vertical {
-            display: flex !important; /* Force show vertical arrows */
+        #chunks, #vectorDb {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            line-height: 1.5;
         }
 
-        /* Base layout */
-        .process-row {
-             display: flex;
-             flex-direction: column; /* Always stack vertically */
-             align-items: center; /* Center items horizontally */
-             gap: 0;
+        #inputEmbedding, #combinedPrompt {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
         }
-         .step-container {
+
+        #combinedPrompt {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.55;
+        }
+
+        /* ── RANKED CANDIDATE LIST ──────────────── */
+        .ranked-list {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 450px; /* Optional: Max width for steps */
-            margin-bottom: 1rem; /* Space below step container (before arrow) */
-         }
-        .step {
-             width: 100%;
-             margin-bottom: 0;
-        }
-
-         .button-action-container {
-             margin-top: 1rem; /* Space between step and button */
-             /* margin-bottom removed, handled by step-container margin */
-         }
-
-        /* Remove desktop-specific layout overrides */
-        /* @media (min-width: 1024px) { ... } block removed */
-
-        .icon {
-            width: 1.125rem;
-            height: 1.125rem;
-            stroke-width: 2;
-            margin-right: 0.5rem;
-            flex-shrink: 0;
-        }
-        .step-title {
-            font-weight: 600;
-            color: #1e293b;
-            text-align: center;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 0.5rem;
-        }
-        textarea, input[type="text"] {
-            border: 1px solid #cbd5e1;
-            padding: 0.6rem 0.8rem;
-            border-radius: 0.5rem;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 0.875rem;
-            color: #334155;
-            background-color: white;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-         textarea:focus, input[type="text"]:focus {
-             outline: none;
-             border-color: #3b82f6;
-             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-         }
-         textarea {
-             min-height: 10rem;
-             resize: vertical;
-         }
-        .control-button {
-            padding: 0.6rem 1.2rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid transparent;
-            gap: 0.5rem;
-        }
-        .control-button:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-        }
-        .control-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .next-step-button {
-             background-color: #3b82f6;
-             color: white;
-        }
-         .next-step-button:hover:not(:disabled) {
-             background-color: #2563eb;
-             transform: translateY(-1px);
-              box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
-         }
-         .next-step-button:disabled {
-             background-color: #94a3b8;
-         }
-
-        #startButton {
-            background-color: #3b82f6;
-            color: white;
-        }
-        #startButton:hover:not(:disabled){
-             background-color: #2563eb;
-             transform: translateY(-1px);
-              box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
-        }
-        #startButton:disabled {
-             background-color: #94a3b8;
-        }
-
-        #resetButton {
-            background-color: #64748b;
-            color: white;
-        }
-        #resetButton:hover:not(:disabled) {
-            background-color: #475569;
-            transform: translateY(-1px);
-             box-shadow: 0 4px 10px rgba(100, 116, 139, 0.2);
-        }
-        #newQueryButton {
-            background-color: #10b981;
-            color: white;
-        }
-        #newQueryButton:hover:not(:disabled) {
-            background-color: #059669;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
-        }
-        .suggestion-button {
-            background-color: #f1f5f9;
-            color: #475569;
-            padding: 0.3rem 0.7rem;
-            border-radius: 9999px;
-            border: 1px solid #e2e8f0;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin: 0.2rem;
-            display: inline-block;
-            line-height: 1.2;
-        }
-        .suggestion-button:hover {
-            background-color: #e2e8f0;
-            border-color: #cbd5e1;
-            color: #1e293b;
-            transform: translateY(-1px);
-        }
-        .process-flow-container {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-            width: 100%;
-            max-width: 80rem;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .error-text {
-            color: #dc2626;
-            font-size: 0.75rem;
+            gap: 0.4rem;
             margin-top: 0.25rem;
         }
-         .button-action-container {
-             text-align: center;
-             width: 100%;
-             height: 60px;
-             display: flex;
-             justify-content: center;
-             align-items: center;
-             margin-top: 1rem;
-         }
-         .button-action-container.hidden {
-             visibility: hidden;
-         }
+
+        .ranked-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.6rem;
+            align-items: center;
+            padding: 0.45rem 0.55rem;
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            background: var(--surface);
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .ranked-item.winner {
+            border-color: var(--green-border);
+            background: var(--green-dim);
+        }
+
+        .ranked-rank {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--text-subtle);
+            min-width: 1.8rem;
+            text-align: center;
+        }
+
+        .ranked-item.winner .ranked-rank { color: var(--green); }
+
+        .ranked-text {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .ranked-item.winner .ranked-text { color: var(--text); }
+
+        .ranked-score {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-subtle);
+            background: var(--surface-2);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 0.15rem 0.4rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .ranked-item.winner .ranked-score {
+            color: var(--green);
+            background: rgba(21,128,61,0.18);
+            border-color: var(--green-border);
+        }
+
+        #chunks .chunk-item, #vectorDb .chunk-vector-item {
+            padding: 0.35rem 0;
+            border-bottom: 1px solid var(--border-dim);
+        }
+        #chunks .chunk-item:last-child, #vectorDb .chunk-vector-item:last-child { border-bottom: none; }
+
+        #vectorDb .chunk-text {
+            display: block;
+            margin-bottom: 0.2rem;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+        }
+        #vectorDb .vector-rep {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-subtle);
+            word-break: break-all;
+            background: var(--bg);
+            border: 1px solid var(--border-dim);
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        #retrievedKnowledge { font-size: 0.78rem; line-height: 1.5; }
+        #retrievedKnowledge .info-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            display: block;
+            margin-top: 0.6rem;
+            margin-bottom: 0.2rem;
+        }
+        #retrievedKnowledge .info-label:first-child { margin-top: 0; }
+        #retrievedKnowledge .info-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            word-break: break-all;
+            background: var(--bg);
+            border: 1px solid var(--border-dim);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 0.2rem;
+        }
+        #retrievedKnowledge .info-content.chunk-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            background: var(--surface);
+            padding: 0.5rem 0.6rem;
+            display: block;
+            border: 1px solid var(--border);
+            border-left: 2px solid var(--blue-border);
+            border-radius: 6px;
+            color: var(--text-muted);
+        }
+        #retrievedKnowledge .info-content.score {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--green);
+            background: var(--green-dim);
+            border-color: var(--green-border);
+        }
+        #retrievedKnowledge .not-found {
+            font-style: italic;
+            color: var(--text-subtle);
+            text-align: center;
+            padding: 0.5rem 0;
+        }
+
+        #finalAnswer {
+            color: var(--text);
+            font-size: 0.825rem;
+            font-style: italic;
+        }
+
+        /* ── INPUT ──────────────────────────────── */
+        input[type="text"] {
+            font-family: 'Inter', sans-serif;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            font-size: 0.825rem;
+            color: var(--text);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        input[type="text"]::placeholder { color: var(--text-subtle); }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 2px rgba(29,78,216,0.2);
+        }
+        input[type="text"][readonly] {
+            cursor: default;
+            caret-color: transparent;
+        }
+
+        /* ── SUGGESTIONS ────────────────────────── */
+        .suggestions-wrap {
+            margin-top: 0.6rem;
+        }
+        .suggestions-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+        .suggestion-button {
+            display: inline-block;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.25rem 0.6rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin: 0.15rem 0.15rem 0 0;
+            line-height: 1.4;
+        }
+        .suggestion-button:hover {
+            background: var(--surface);
+            border-color: var(--blue-border);
+            color: var(--text);
+        }
+
+        /* ── ERROR ──────────────────────────────── */
+        .error-text {
+            font-size: 0.72rem;
+            color: var(--red);
+            margin-top: 0.3rem;
+        }
+
+        /* ── ARROW ──────────────────────────────── */
+        .arrow-connector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.2rem 0;
+            color: var(--border);
+            transition: color 0.2s ease;
+        }
+        .arrow-connector.active { color: var(--blue); }
+        .arrow-connector svg { width: 1.1rem; height: 1.1rem; stroke-width: 2; }
+        .arrow-connector.horizontal { display: none !important; }
+        .arrow-connector.vertical { display: flex !important; }
+
+        /* ── NEXT BUTTON AREA ───────────────────── */
+        .button-action-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 52px;
+        }
+        .button-action-container.hidden { visibility: hidden; }
+
+        /* ── FOOTER ─────────────────────────────── */
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-dim);
+            text-align: center;
+        }
+        footer p {
+            font-size: 0.7rem;
+            color: var(--text-subtle);
+            letter-spacing: 0.03em;
+        }
+
+        /* ── MISC ───────────────────────────────── */
+        .process-flow-container {
+            width: 100%;
+        }
+
+        @media (max-width: 420px) {
+            .page-wrap { padding: 2rem 1rem 2.5rem; }
+            h1 { font-size: 1.6rem; }
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body>
 
-    <header class="text-center mb-10">
-        <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Interactive RAG Simulator</h1>
-        <p class="mt-2 text-lg text-slate-600 max-w-3xl mx-auto">Visualize the step-by-step process of Retrieval-Augmented Generation.</p>
-    </header>
+    <div class="top-bar"></div>
 
-    <div class="text-center mb-10 space-x-3 md:space-x-4">
-        <button id="startButton" class="control-button">
-            <i data-lucide="play-circle"></i> Start Simulation
-        </button>
-        <button id="resetButton" class="control-button">
-            <i data-lucide="rotate-cw"></i> Reset All
-        </button>
-    </div>
+    <div class="page-wrap">
 
-    <div id="statusMessage" aria-live="polite" class="text-center mb-10 text-xl font-medium text-slate-700 h-8">
-        Click "Start Simulation" to begin.
-    </div>
-
-    <div class="process-flow-container">
-
-        <section aria-labelledby="phase1-title">
-            <h2 id="phase1-title" class="text-2xl font-semibold mb-5 text-slate-800 text-center">Phase 1: Knowledge Preparation</h2>
-            <div class="process-row">
-                <div class="step-container">
-                    <div id="step1" class="step">
-                        <h3 class="step-title"><i data-lucide="file-text" class="icon"></i>1. Knowledge Doc</h3>
-                        <textarea id="knowledgeDoc" class="content-display" placeholder="Enter or use default knowledge text."></textarea>
-                    </div>
-                    <div class="button-action-container next-button-container hidden" data-step="1">
-                        <button class="control-button next-step-button" disabled>
-                            <i data-lucide="skip-forward"></i> Next Step
-                        </button>
-                    </div>
-                </div>
-
-                <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
-
-                <div class="step-container">
-                    <div id="step2" class="step">
-                        <h3 class="step-title"><i data-lucide="grip" class="icon"></i><i data-lucide="scissors" class="icon ml-1"></i>2. Chunk Text</h3>
-                        <div id="chunks" class="content-display text-left" placeholder="Text Chunks appear here..."></div>
-                    </div>
-                    <div class="button-action-container next-button-container hidden" data-step="2">
-                        <button class="control-button next-step-button" disabled>
-                            <i data-lucide="skip-forward"></i> Next Step
-                        </button>
-                    </div>
-                </div>
-
-                <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
-
-                <div class="step-container">
-                    <div id="step3" class="step">
-                         <h3 class="step-title"><i data-lucide="database" class="icon"></i><i data-lucide="atom" class="icon ml-1"></i>3. Vector Database</h3>
-                        <div id="vectorDb" class="content-display text-left" placeholder="Chunk embeddings stored here..."></div>
-                    </div>
-                    <div class="button-action-container next-button-container hidden" data-step="3">
-                        <button class="control-button next-step-button" disabled>
-                            <i data-lucide="skip-forward"></i> Next Step
-                        </button>
-                    </div>
-                </div>
+        <header>
+            <div class="header-badge">
+                <i data-lucide="zap"></i> Interaktywna Demonstracja
             </div>
-             </section>
+            <h1>Symulator <span>RAG</span></h1>
+            <p class="header-sub">Wizualizacja procesu Retrieval-Augmented Generation krok po kroku.</p>
+        </header>
 
-        <section aria-labelledby="phase2-title">
-             <h2 id="phase2-title" class="text-2xl font-semibold mb-5 text-slate-800 text-center">Phase 2: Querying & Generation</h2>
-             <div class="process-row">
-                 <div class="step-container">
-                     <div id="step4" class="step">
-                        <h3 class="step-title"><i data-lucide="user" class="icon"></i>4. User Query</h3>
-                        <input type="text" id="userInput" class="mb-2" placeholder="Enter query or choose below">
-                        <div id="userInputError" class="error-text hidden">Please enter a query.</div>
-                        <div id="suggestionsContainer" class="mt-2 text-center hidden">
-                            <p class="text-xs text-gray-500 mb-1">Suggestions:</p>
-                            <button class="suggestion-button" data-query="Which planet is closest to the Sun?">Closest planet?</button>
-                            <button class="suggestion-button" data-query="Tell me about Saturn's rings.">Saturn's rings?</button>
-                            <button class="suggestion-button" data-query="What are Jupiter's Galilean moons?">Jupiter's moons?</button>
-                            <button class="suggestion-button" data-query="What is the largest animal on Earth?">Largest animal?</button>
+        <div class="controls">
+            <button id="startButton" class="btn btn-primary">
+                <i data-lucide="play"></i> Uruchom
+            </button>
+            <button id="autoButton" class="btn">
+                <i data-lucide="fast-forward"></i> <span class="auto-label">Auto</span>
+            </button>
+            <button id="resetButton" class="btn">
+                <i data-lucide="rotate-cw"></i> Resetuj
+            </button>
+            <span class="kbd-hint"><kbd>Enter</kbd> = Dalej</span>
+        </div>
+
+        <div id="statusMessage" aria-live="polite">
+            <span class="status-text">Kliknij „Uruchom", aby rozpocząć.</span>
+        </div>
+
+        <div class="process-flow-container">
+
+            <section aria-labelledby="phase1-title">
+                <div class="phase-divider">
+                    <span class="phase-tag"><strong>01</strong> / Przygotowanie Wiedzy</span>
+                    <span class="phase-line"></span>
+                </div>
+                <div class="process-row">
+                    <div class="step-container">
+                        <div id="step1" class="step">
+                            <h3 class="step-title"><i data-lucide="file-text" class="icon"></i>Dokument Wiedzy</h3>
+                            <textarea id="knowledgeDoc" class="content-display" placeholder="Wpisz lub użyj domyślnego tekstu wiedzy."></textarea>
                         </div>
-                     </div>
-                     <div class="button-action-container next-button-container hidden" data-step="4">
-                         <button class="control-button next-step-button" disabled>
-                             <i data-lucide="skip-forward"></i> Next Step
-                         </button>
-                     </div>
-                 </div>
+                        <div class="button-action-container next-button-container hidden" data-step="1">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
 
-                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
 
-                 <div class="step-container">
-                     <div id="step5" class="step">
-                         <h3 class="step-title"><i data-lucide="atom" class="icon"></i>5. Embed Query</h3>
-                         <div id="inputEmbedding" class="content-display text-center" placeholder="Query embedding appears here..."></div>
-                     </div>
-                     <div class="button-action-container next-button-container hidden" data-step="5">
-                         <button class="control-button next-step-button" disabled>
-                             <i data-lucide="skip-forward"></i> Next Step
-                         </button>
-                     </div>
-                 </div>
+                    <div class="step-container">
+                        <div id="step2" class="step">
+                            <h3 class="step-title"><i data-lucide="scissors" class="icon"></i>Podział na Fragmenty</h3>
+                            <div id="chunks" class="content-display text-left" placeholder="Fragmenty tekstu pojawią się tutaj..."></div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="2">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
 
-                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
 
-                 <div class="step-container">
-                     <div id="step67" class="step">
-                         <h3 class="step-title"><i data-lucide="search" class="icon"></i><i data-lucide="database-zap" class="icon ml-1"></i>6/7. Retrieve Chunks</h3>
-                         <div id="retrievedKnowledge" class="content-display" placeholder="Relevant knowledge appears here..."></div>
-                     </div>
-                     <div class="button-action-container next-button-container hidden" data-step="67"> <button class="control-button next-step-button" disabled>
-                             <i data-lucide="skip-forward"></i> Next Step
-                         </button>
-                     </div>
-                 </div>
+                    <div class="step-container">
+                        <div id="step3" class="step">
+                            <h3 class="step-title"><i data-lucide="database" class="icon"></i>Baza Wektorowa</h3>
+                            <div id="vectorDb" class="content-display text-left" placeholder="Embeddingsy fragmentów przechowywane tutaj..."></div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="3">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+            <section aria-labelledby="phase2-title">
+                <div class="phase-divider">
+                    <span class="phase-tag"><strong>02</strong> / Zapytanie i Generowanie</span>
+                    <span class="phase-line"></span>
+                </div>
+                <div class="process-row">
+                    <div class="step-container">
+                        <div id="step4" class="step">
+                            <h3 class="step-title"><i data-lucide="terminal" class="icon"></i>Zapytanie Użytkownika</h3>
+                            <input type="text" id="userInput" readonly placeholder="Wybierz sugestię poniżej">
+                            <div id="userInputError" class="error-text hidden">Proszę wybrać sugestię.</div>
+                            <div id="suggestionsContainer" class="suggestions-wrap hidden">
+                                <p class="suggestions-label">Sugestie</p>
+                                <button class="suggestion-button" data-query="Która planeta jest najbliżej Słońca?">Najbliższa planeta?</button>
+                                <button class="suggestion-button" data-query="Opowiedz mi o pierścieniach Saturna.">Pierścienie Saturna?</button>
+                                <button class="suggestion-button" data-query="Jakie są galileuszowe księżyce Jowisza?">Księżyce Jowisza?</button>
+                                <button class="suggestion-button" data-query="Jakie jest największe zwierzę na Ziemi?">Największe zwierzę?</button>
+                            </div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="4">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
 
-                 <div class="step-container">
-                     <div id="step8" class="step">
-                        <h3 class="step-title"><i data-lucide="list-plus" class="icon"></i><i data-lucide="file-question" class="icon ml-1"></i>8. Augment Prompt</h3>
-                        <div id="combinedPrompt" class="content-display text-left" placeholder="Combined prompt for LLM appears here..."></div>
-                     </div>
-                     <div class="button-action-container next-button-container hidden" data-step="8">
-                         <button class="control-button next-step-button" disabled>
-                             <i data-lucide="skip-forward"></i> Next Step
-                         </button>
-                     </div>
-                 </div>
+                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
 
-                 <div class="arrow-connector vertical"><i data-lucide="arrow-right-circle"></i></div>
+                    <div class="step-container">
+                        <div id="step5" class="step">
+                            <h3 class="step-title"><i data-lucide="binary" class="icon"></i>Osadzanie Zapytania</h3>
+                            <div id="inputEmbedding" class="content-display" placeholder="Embedding zapytania pojawi się tutaj..."></div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="5">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
 
-                 <div class="step-container">
-                     <div id="step9" class="step">
-                         <h3 class="step-title"><i data-lucide="brain-circuit" class="icon"></i><i data-lucide="message-circle-reply" class="icon ml-1"></i>9. Generate Answer</h3>
-                         <div id="finalAnswer" class="content-display text-center font-medium" placeholder="Final answer appears here..."></div>
-                     </div>
-                     <div class="button-action-container next-button-container hidden" data-step="9">
-                         </div>
-                 </div>
-             </div>
-             <div id="newQueryButtonContainer" class="button-action-container hidden">
-                 <button id="newQueryButton" class="control-button">
-                     <i data-lucide="search"></i> Run New Query
-                 </button>
-             </div>
-             </section>
+                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
+
+                    <div class="step-container">
+                        <div id="step67" class="step">
+                            <h3 class="step-title"><i data-lucide="search" class="icon"></i>Pobieranie Fragmentów</h3>
+                            <div id="retrievedKnowledge" class="content-display" placeholder="Odpowiednia wiedza pojawi się tutaj..."></div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="67">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
+
+                    <div class="step-container">
+                        <div id="step8" class="step">
+                            <h3 class="step-title"><i data-lucide="code-2" class="icon"></i>Rozszerzenie Promptu</h3>
+                            <div id="combinedPrompt" class="content-display text-left" placeholder="Złączony prompt dla LLM pojawi się tutaj..."></div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="8">
+                            <button class="btn btn-primary next-step-button" disabled>
+                                <i data-lucide="arrow-down"></i> Dalej
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
+
+                    <div class="step-container">
+                        <div id="step9" class="step">
+                            <h3 class="step-title"><i data-lucide="sparkles" class="icon"></i>Generowanie Odpowiedzi</h3>
+                            <div id="finalAnswer" class="content-display" placeholder="Odpowiedź pojawi się tutaj..."></div>
+                        </div>
+                        <div class="button-action-container next-button-container hidden" data-step="9"></div>
+                    </div>
+                </div>
+
+                <div id="newQueryButtonContainer" class="button-action-container hidden" style="margin-top: 0.75rem;">
+                    <button id="newQueryButton" class="btn btn-success">
+                        <i data-lucide="refresh-cw"></i> Nowe Zapytanie
+                    </button>
+                </div>
+            </section>
+
+        </div>
+
+        <footer>
+            <p>Symulator RAG — Przykład Ilustracyjny</p>
+        </footer>
 
     </div>
-
-    <footer class="text-center mt-12 text-sm text-slate-500">
-        <p>RAG Simulator - Illustrative Example</p>
-    </footer>
-
 
     <script>
-        // --- DOM Element References ---
         const startButton = document.getElementById('startButton');
+        const autoButton = document.getElementById('autoButton');
+        const autoLabel = autoButton.querySelector('.auto-label');
         const nextButtons = document.querySelectorAll('.next-step-button');
         const allNextButtonContainers = document.querySelectorAll('.next-button-container');
         const resetButton = document.getElementById('resetButton');
@@ -523,31 +848,21 @@
         const suggestionButtons = document.querySelectorAll('.suggestion-button');
         const arrowConnectors = document.querySelectorAll('.arrow-connector');
 
-        // Helper function to get step element
         const getStepElement = (stepNum) => {
             if (stepNum === 6 || stepNum === 7) return document.getElementById('step67');
             return document.getElementById(`step${stepNum}`);
-        }
-
-        // Map step numbers to their content display element IDs
-        const contentElementIds = {
-            1: 'knowledgeDoc',
-            2: 'chunks',
-            3: 'vectorDb',
-            4: 'userInput',
-            5: 'inputEmbedding',
-            67: 'retrievedKnowledge',
-            8: 'combinedPrompt',
-            9: 'finalAnswer'
         };
 
-        // Get references to the content display elements
+        const contentElementIds = {
+            1: 'knowledgeDoc', 2: 'chunks', 3: 'vectorDb', 4: 'userInput',
+            5: 'inputEmbedding', 67: 'retrievedKnowledge', 8: 'combinedPrompt', 9: 'finalAnswer'
+        };
+
         const contentElements = Object.entries(contentElementIds).reduce((acc, [step, id]) => {
             acc[step] = document.getElementById(id);
             return acc;
         }, {});
 
-        // --- State Variables ---
         let currentStep = 0;
         let knowledgeChunks = [];
         let knowledgeEmbeddings = {};
@@ -555,51 +870,57 @@
         let userQuery = '';
         let queryEmbeddingVector = [];
         let queryEmbeddingString = '';
-        let retrievedChunkInfo = {
-            text: '',
-            embedding: '',
-            score: 0
-        };
+        let retrievedChunks = [];
         let combinedPromptText = '';
         let answer = '';
         let simulationTimeout = null;
+        let autoPlayActive = false;
+        let autoPlayTimer = null;
 
-        // --- Embedding Simulation Setup ---
         const embeddingDimension = 12;
-        const topicDimensions = {
-            'sun': 0, 'mercury': 1, 'venus': 2, 'earth': 3, 'mars': 4,
-            'jupiter': 5, 'saturn': 6, 'uranus_neptune': 7,
-            'asteroid_belt': 8, 'kuiper_oort': 9,
-            'properties': 10,
-            'features': 11
-        };
+        const TOP_K = 3;
+
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         const dimensionKeywords = {
-            0: ['sun', 'star', 'yellow dwarf', 'mass'],
-            1: ['mercury'],
-            2: ['venus', 'hot', 'atmosphere', 'toxic'],
-            3: ['earth', 'life', 'water'],
-            4: ['mars', 'red planet'],
-            5: ['jupiter', 'galilean', 'io', 'europa', 'ganymede', 'callisto', 'magnetic field'],
-            6: ['saturn', 'rings', 'titan'],
-            7: ['uranus', 'neptune', 'ice giant', 'methane', 'blue', 'rotate', 'collision', 'windy', 'storm'],
-            8: ['asteroid', 'belt', 'ceres', 'rocky bodies'],
-            9: ['kuiper', 'oort', 'pluto', 'eris', 'comet', 'icy bodies'],
-            10: ['gravity', 'orbit', 'star', 'mass', 'rocky', 'gas', 'ice', 'terrestrial', 'giant', 'solar', 'system', 'planet'],
-            11: ['moons', 'rings', 'hot', 'life', 'red', 'atmosphere', 'collision', 'windy', 'magnetic field']
+            0: ['sun', 'star', 'yellow dwarf', 'mass', 'słońce', 'słońca', 'gwiazda', 'gwiazdą', 'żółty karzeł', 'masa'],
+            1: ['mercury', 'merkury', 'merkurego', 'merkurym'],
+            2: ['venus', 'hot', 'atmosphere', 'toxic', 'wenus', 'gorąca', 'gorący', 'atmosfera', 'atmosferę', 'atmosfery'],
+            3: ['earth', 'life', 'water', 'ziemia', 'ziemi', 'ziemię', 'życie', 'życia', 'woda', 'wody'],
+            4: ['mars', 'red planet', 'czerwona planeta', 'czerwonej planecie'],
+            5: ['jupiter', 'galilean', 'io', 'europa', 'ganymede', 'callisto', 'magnetic field',
+                'jowisz', 'jowisza', 'galileuszowe', 'galileuszowych', 'ganimedesa', 'kallisto', 'pole magnetyczne'],
+            6: ['saturn', 'rings', 'titan', 'pierścienie', 'pierścieni', 'tytan', 'tytana'],
+            7: ['uranus', 'neptune', 'ice giant', 'methane', 'blue', 'rotate', 'collision', 'windy', 'storm',
+                'uran', 'urana', 'neptun', 'neptuna', 'lodowy olbrzym', 'metan', 'metanu',
+                'niebieski', 'niebieskie', 'obraca', 'zderzenie', 'wietrzna', 'wietrzny', 'burza', 'burze'],
+            8: ['asteroid', 'belt', 'ceres', 'rocky bodies', 'pas asteroid', 'skaliste ciała'],
+            9: ['kuiper', 'oort', 'pluto', 'eris', 'comet', 'icy bodies',
+                'pluton', 'plutona', 'kometa', 'komety', 'lodowe ciała', 'obłok oorta'],
+            10: ['gravity', 'orbit', 'star', 'mass', 'rocky', 'gas', 'ice', 'terrestrial', 'giant', 'solar', 'system', 'planet',
+                 'grawitacja', 'grawitacji', 'orbita', 'orbicie', 'orbitują', 'skalista', 'skalistych',
+                 'gaz', 'gazowy', 'gazowe', 'lód', 'lodowy', 'lodowe', 'olbrzym', 'olbrzymy',
+                 'słoneczny', 'słonecznego', 'układ', 'układu', 'planeta', 'planety'],
+            11: ['moons', 'rings', 'hot', 'life', 'red', 'atmosphere', 'collision', 'windy', 'magnetic field',
+                 'księżyce', 'księżyców', 'księżyc', 'pierścienie', 'gorąca', 'życie', 'czerwona',
+                 'atmosfera', 'zderzenie', 'wietrzna', 'pole magnetyczne']
         };
 
+        const defaultKnowledge = `Nasz Układ Słoneczny to rozległe i fascynujące miejsce, skupione wokół Słońca – gwiazdy typu G (żółty karzeł), która zawiera 99,86% całkowitej masy układu. Grawitacja Słońca utrzymuje razem wszystko – od największych planet po najmniejsze odłamki skalne. Oficjalnie wyróżnia się osiem planet. Licząc od Słońca, są to Merkury, Wenus, Ziemia i Mars – wewnętrzne, skaliste (terrestryczne) planety. Za Marsem leży główny pas asteroid – obszar zamieszkały przez miliony skalistych ciał, pozostałości z wczesnego formowania się Układu Słonecznego. Ceres, największy obiekt w pasie asteroid, sklasyfikowany jest jako planeta karłowata. Za pasem asteroid znajdują się planety zewnętrzne: Jowisz, Saturn, Uran i Neptun. Są to gazowe olbrzymy (Jowisz, Saturn) i lodowe olbrzymy (Uran, Neptun) – znacznie większe od planet terrestrycznych, zbudowane głównie z gazów i lodu. Jowisz jest zdecydowanie największą planetą, posiada silne pole magnetyczne i liczne księżyce, w tym cztery duże księżyce galileuszowe: Io, Europę, Ganimedesa i Kallisto. Saturn słynie z imponującego i złożonego systemu pierścieni, zbudowanego głównie z cząsteczek lodu z domieszką odłamków skalnych i pyłu. Ma też wiele księżyców, w tym duży Tytan z gęstą atmosferą. Uran i Neptun, lodowe olbrzymy, są chłodniejsze i mają atmosfery zawierające metan, który nadaje im niebieskawą barwę. Uran jest wyjątkowy, ponieważ obraca się na boku – prawdopodobnie wskutek ogromnego zderzenia we wczesnej historii układu. Neptun to najbardziej wietrzna planeta – w jego atmosferze szaleją naddźwiękowe burze. Za Neptunem leży Pas Kuipera – kolejny dyskowy obszar wypełniony lodowymi ciałami, w tym planetami karłowatymi: Plutonem, Eris, Makemake i Haumea. Jeszcze dalej rozciąga się teoretyczny Obłok Oorta – ogromna sferyczna powłoka lodowych obiektów, uważana za źródło długookresowych komet. Cały Układ Słoneczny jest w ciągłym ruchu – planety orbitują wokół Słońca, księżyce wokół swoich planet, a wszystko to jest częścią galaktyki Drogi Mlecznej.`;
 
-        const defaultKnowledge = `Our Solar System is a vast and fascinating place, centered around the Sun, a G-type main-sequence star (yellow dwarf) that contains 99.86% of the system's known mass. The Sun's gravity holds everything together, from the largest planets to the smallest debris. There are eight planets officially recognized. In order from the Sun, they are Mercury, Venus, Earth, and Mars – the inner, rocky (terrestrial) planets. Beyond Mars lies the main asteroid belt, a region populated by millions of rocky bodies, remnants from the Solar System's early formation. Ceres, the largest object in the asteroid belt, is classified as a dwarf planet. Following the asteroid belt are the outer planets: Jupiter, Saturn, Uranus, and Neptune. These are the gas giants (Jupiter, Saturn) and ice giants (Uranus, Neptune), much larger than the terrestrial planets and composed mainly of gases and ices. Jupiter is the largest planet by a significant margin, possessing a strong magnetic field and numerous moons, including the four large Galilean moons (Io, Europa, Ganymede, Callisto). Saturn is famous for its stunning and complex ring system, composed mostly of ice particles with some rock debris and dust. It also has many moons, including the large moon Titan, which has a substantial atmosphere. Uranus and Neptune, the ice giants, are colder and have atmospheres containing methane, which gives them their blueish hues. Uranus is unique for rotating on its side, possibly due to a massive collision early in its history. Neptune is the windiest planet, with supersonic storms raging in its atmosphere. Beyond Neptune lies the Kuiper Belt, another disk-shaped region of icy bodies, including dwarf planets like Pluto, Eris, Makemake, and Haumea. Even further out is the theoretical Oort Cloud, a giant spherical shell of icy objects thought to be the source of long-period comets. The entire Solar System is constantly in motion, with planets orbiting the Sun and moons orbiting their planets, all part of the Milky Way galaxy.`;
-
-        // --- Simulation Functions ---
         function chunkText(text, sentencesPerChunk = 3) {
             const sentences = text.match(/[^.!?]+[.!?]?\s*/g) || [text];
-            const trimmedSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
+            const trimmed = sentences.map(s => s.trim()).filter(s => s.length > 0);
             const chunks = [];
-            for (let i = 0; i < trimmedSentences.length; i += sentencesPerChunk) {
-                const chunkSentences = trimmedSentences.slice(i, i + sentencesPerChunk);
-                chunks.push(chunkSentences.join(' '));
+            for (let i = 0; i < trimmed.length; i += sentencesPerChunk) {
+                chunks.push(trimmed.slice(i, i + sentencesPerChunk).join(' '));
             }
             return chunks;
         }
@@ -607,143 +928,97 @@
         function simulateEmbedding(text) {
             const vector = new Array(embeddingDimension).fill(0);
             if (!text) return { vector, string: `[${vector.map(v => v.toFixed(2)).join(', ')}]` };
-
             const lowerText = text.toLowerCase();
             let magnitude = 0;
-
             for (const dimIndexStr in dimensionKeywords) {
                 const dimIndex = parseInt(dimIndexStr, 10);
                 let score = 0;
                 dimensionKeywords[dimIndex].forEach(keyword => {
                     const regex = new RegExp(`\\b${keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'gi');
                     const matches = lowerText.match(regex);
-                    if (matches) {
-                        score += matches.length;
-                    }
+                    if (matches) score += matches.length;
                 });
-                 score += (Math.random() - 0.5) * 0.1;
-                 score = Math.max(0, score);
-
+                score += (Math.random() - 0.5) * 0.1;
+                score = Math.max(0, score);
                 vector[dimIndex] = score;
                 magnitude += score * score;
             }
-
             magnitude = Math.sqrt(magnitude);
             if (magnitude > 0) {
-                for (let i = 0; i < embeddingDimension; i++) {
-                    vector[i] /= magnitude;
-                }
+                for (let i = 0; i < embeddingDimension; i++) vector[i] /= magnitude;
             }
-
-            const stringRepresentation = `[${vector.map(v => v.toFixed(2)).join(', ')}]`;
-            return { vector, string: stringRepresentation };
+            return { vector, string: `[${vector.map(v => v.toFixed(2)).join(', ')}]` };
         }
 
         function calculateSimilarity(vec1, vec2) {
-            if (!vec1 || !vec2 || vec1.length !== vec2.length || vec1.length === 0) {
-                console.error("Invalid vectors for similarity calculation:", vec1, vec2);
-                return 0;
-            }
-
-            let dotProduct = 0;
-            let magnitude1 = 0;
-            let magnitude2 = 0;
-
+            if (!vec1 || !vec2 || vec1.length !== vec2.length || vec1.length === 0) return 0;
+            let dot = 0, mag1 = 0, mag2 = 0;
             for (let i = 0; i < vec1.length; i++) {
-                dotProduct += vec1[i] * vec2[i];
-                magnitude1 += vec1[i] * vec1[i];
-                magnitude2 += vec2[i] * vec2[i];
+                dot += vec1[i] * vec2[i];
+                mag1 += vec1[i] * vec1[i];
+                mag2 += vec2[i] * vec2[i];
             }
-
-            magnitude1 = Math.sqrt(magnitude1);
-            magnitude2 = Math.sqrt(magnitude2);
-
-            if (magnitude1 === 0 || magnitude2 === 0) {
-                return 0;
-            }
-
-            const similarity = dotProduct / (magnitude1 * magnitude2);
-            return Math.max(0, Math.min(1, similarity));
+            mag1 = Math.sqrt(mag1); mag2 = Math.sqrt(mag2);
+            if (mag1 === 0 || mag2 === 0) return 0;
+            return Math.max(0, Math.min(1, dot / (mag1 * mag2)));
         }
 
-        function simulateVectorSearch(queryVec, db) {
-             let bestMatchIndex = -1;
-             let highestScore = -1;
-
-             if (!queryVec || Object.keys(db).length === 0 || queryVec.length === 0) {
-                 return { index: -1, score: 0 };
-             }
-
-             for (const indexStr in db) {
-                 const index = parseInt(indexStr, 10);
-                 const chunkVec = db[index];
-                 if (!chunkVec || chunkVec.length !== queryVec.length) continue;
-
-                 const score = calculateSimilarity(queryVec, chunkVec);
-
-                 if (score > highestScore) {
-                     highestScore = score;
-                     bestMatchIndex = index;
-                 }
-             }
-
-             if (bestMatchIndex === -1 || highestScore <= 0) {
-                 return { index: -1, score: 0 };
-             }
-
-             return { index: bestMatchIndex, score: highestScore };
-         }
+        function simulateVectorSearch(queryVec, db, k = TOP_K) {
+            if (!queryVec || queryVec.length === 0) return [];
+            const scored = [];
+            for (const indexStr in db) {
+                const index = parseInt(indexStr, 10);
+                const chunkVec = db[index];
+                if (!chunkVec || chunkVec.length !== queryVec.length) continue;
+                scored.push({ index, score: calculateSimilarity(queryVec, chunkVec) });
+            }
+            scored.sort((a, b) => b.score - a.score);
+            return scored.slice(0, k);
+        }
 
         function simulateLLM(prompt) {
-            const contextMatch = prompt.match(/Context:\s*(.*?)\s*Question:/is);
-            const questionMatch = prompt.match(/Question:\s*(.*?)\s*Answer:/is);
-            const context = contextMatch ? contextMatch[1].toLowerCase().trim() : 'no context found.';
-            const question = questionMatch ? questionMatch[1].toLowerCase().trim() : '';
+            const ctxMatch = prompt.match(/Kontekst:\s*(.*?)\s*---/is);
+            const qMatch = prompt.match(/Pytanie:\s*(.*?)\s*---/is);
+            const context = ctxMatch ? ctxMatch[1].toLowerCase().trim() : 'brak kontekstu.';
+            const question = qMatch ? qMatch[1].toLowerCase().trim() : '';
 
-            if (context === 'no context found.' || context === '') {
-                 return `I apologize, but no relevant context was retrieved to answer the question: "${question}".`;
+            if (context === 'brak kontekstu.' || context === '') {
+                return `Przepraszam, nie znaleziono odpowiedniego kontekstu do odpowiedzi na pytanie: „${question}".`;
             }
-
-            if (question.includes("closest") && question.includes("sun")) {
-                if (context.includes("mercury") && context.includes("order from the sun")) return "Based on the context provided, Mercury is the first planet in order from the Sun, making it the closest.";
-                if (context.includes("mercury")) return "The context mentions Mercury. It is generally known as the closest planet.";
-                 return "The retrieved context does not explicitly state which planet is closest to the Sun.";
+            if (question.includes('najbliżej') || question.includes('najbliższ')) {
+                if (context.includes('merkury') && (context.includes('od słońca') || context.includes('licząc od')))
+                    return 'Na podstawie dostarczonego kontekstu, Merkury jest pierwszą planetą licząc od Słońca – jest więc do niego najbliżej.';
+                if (context.includes('merkury'))
+                    return 'Kontekst wspomina o Merkurym. Jest on znany jako planeta najbliższa Słońcu.';
+                return 'Pobrany kontekst nie wskazuje wprost, która planeta jest najbliżej Słońca.';
             }
-            if (question.includes("red planet")) {
-                 if (context.includes("mars") && context.includes("red planet")) return "The context explicitly states that Mars is often called the 'Red Planet'.";
-                 if (context.includes("mars")) return "The context discusses Mars. Mars is known as the Red Planet.";
-                 return "The retrieved context does not seem to mention the 'Red Planet' or Mars.";
+            if (question.includes('pierścień') || question.includes('pierścieni') || question.includes('pierścieniach')) {
+                if (context.includes('saturn') && (context.includes('pierścieni') || context.includes('pierścienie')) && context.includes('lodu'))
+                    return 'Kontekst stwierdza, że Saturn słynie z imponującego systemu pierścieni, zbudowanego głównie z cząsteczek lodu z domieszką odłamków skalnych.';
+                if (context.includes('saturn') && (context.includes('pierścień') || context.includes('pierścieni')))
+                    return 'Kontekst wspomina o Saturnie i jego pierścieniach.';
+                return 'Pobrany kontekst nie zawiera szczegółów na temat pierścieni Saturna.';
             }
-             if (question.includes("asteroid belt")) {
-                 if (context.includes("asteroid belt") && context.includes("beyond mars")) return "According to the context, the main asteroid belt, containing objects like Ceres, lies beyond Mars.";
-                 if (context.includes("asteroid belt")) return "The context mentions the asteroid belt, a region of rocky bodies.";
-                  return "The retrieved context does not describe the asteroid belt.";
+            if ((question.includes('jowisz') || question.includes('jowisza')) &&
+                (question.includes('księżyc') || question.includes('księżyce') || question.includes('galileuszowe'))) {
+                if (context.includes('jowisz') && context.includes('galileusz') && context.includes('io'))
+                    return 'Kontekst stwierdza, że Jowisz posiada liczne księżyce, w tym cztery duże księżyce galileuszowe: Io, Europę, Ganimedesa i Kallisto.';
+                if (context.includes('jowisz') && (context.includes('księżyce') || context.includes('księżyców')))
+                    return 'Kontekst wspomina, że Jowisz ma wiele księżyców.';
+                return 'Pobrany kontekst nie zawiera szczegółów na temat księżyców Jowisza.';
             }
-             if (question.includes("saturn") && question.includes("rings")) {
-                 if (context.includes("saturn") && context.includes("ring system") && context.includes("ice particles")) return "The context states Saturn is famous for its complex ring system, composed mostly of ice particles with some rock debris.";
-                 if (context.includes("saturn") && context.includes("rings")) return "The context mentions Saturn and its rings.";
-                 return "The retrieved context does not provide details about Saturn's rings.";
+            if (question.includes('zwierzę') || question.includes('zwierz')) {
+                if (context.includes('układ słoneczny') || context.includes('planet') || context.includes('słońc'))
+                    return 'Pobrany kontekst dotyczy Układu Słonecznego i planet, a nie zwierząt Ziemi. Nie mogę odpowiedzieć na to pytanie na podstawie tych informacji.';
+                return `Kontekst („${context.substring(0, 60)}...") nie wydaje się dotyczyć zwierząt.`;
             }
-            if (question.includes("jupiter") && question.includes("moons")) {
-                 if (context.includes("jupiter") && context.includes("galilean moons") && context.includes("io") && context.includes("europa")) return `The context states Jupiter has numerous moons, specifically mentioning the four large Galilean moons: Io, Europa, Ganymede, and Callisto.`;
-                 if (context.includes("jupiter") && context.includes("many moons")) return `The context mentions Jupiter has many moons.`;
-                 return "The retrieved context does not provide specific details about Jupiter's moons.";
-            }
-            if (question.includes("largest animal")) {
-                 if (context.includes("solar system") || context.includes("planet") || context.includes("sun")) {
-                     return `The retrieved context discusses the Solar System and planets, not Earth's animals. Therefore, I cannot answer your question about the largest animal based on this information.`;
-                 }
-                 return `The context provided ("${context.substring(0,60)}...") does not seem relevant to Earth animals.`;
-            }
-
-            return `Based on the retrieved context ("${context.substring(0, 60)}..."), I will attempt to answer your question about "${question}". (Simulated generic LLM response)`;
+            return `Na podstawie pobranego kontekstu („${context.substring(0, 60)}...") podejmuję próbę odpowiedzi na pytanie: „${question}". (Symulowana ogólna odpowiedź LLM)`;
         }
 
-        // --- UI Update Functions ---
         function setContent(element, content, isHtml = false) {
             if (!element) return;
-            const displayElement = element.classList.contains('content-display') ? element : element.querySelector('.content-display');
-            const target = displayElement || element;
+            const displayEl = element.classList.contains('content-display') ? element : element.querySelector('.content-display');
+            const target = displayEl || element;
             target.classList.add('fade-out');
             setTimeout(() => {
                 if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
@@ -754,35 +1029,45 @@
                     target.textContent = content || '';
                 }
                 if (!content && target.classList.contains('content-display') && target.hasAttribute('placeholder')) {
-                   target.innerHTML = '';
+                    target.innerHTML = '';
                 }
                 target.classList.remove('fade-out');
             }, 150);
         }
 
         function resetPhase2() {
-            userQuery = '';
-            queryEmbeddingVector = [];
-            queryEmbeddingString = '';
-            retrievedChunkInfo = { text: '', embedding: '', score: 0 };
-            combinedPromptText = '';
-            answer = '';
-
-            setContent(contentElements[4], '');
-            setContent(contentElements[5], '');
-            setContent(contentElements[67], '');
-            setContent(contentElements[8], '');
+            userQuery = ''; queryEmbeddingVector = []; queryEmbeddingString = '';
+            retrievedChunks = [];
+            combinedPromptText = ''; answer = '';
+            setContent(contentElements[4], ''); setContent(contentElements[5], '');
+            setContent(contentElements[67], ''); setContent(contentElements[8], '');
             setContent(contentElements[9], '');
-
-             for (let i = 4; i <= 9; i++) {
-                const stepEl = getStepElement(i);
-                if (stepEl) {
-                    stepEl.classList.remove('step-active', 'step-complete');
-                }
+            for (let i = 4; i <= 9; i++) {
+                const el = getStepElement(i);
+                if (el) el.classList.remove('step-active', 'step-complete');
             }
-             const phase2Row = document.getElementById('step4').closest('.process-row');
-             phase2Row?.querySelectorAll('.arrow-connector').forEach(arrow => arrow.classList.remove('active'));
+            const phase2Row = document.getElementById('step4').closest('.process-row');
+            phase2Row?.querySelectorAll('.arrow-connector').forEach(a => a.classList.remove('active'));
+        }
 
+        function updateStatusMessage() {
+            const messages = [
+                'Symulacja zresetowana. Kliknij „Uruchom", aby rozpocząć.',
+                'Krok 1 — przetwarzanie dokumentu wiedzy...',
+                'Krok 2 — podział tekstu na fragmenty...',
+                'Krok 3 — zapisywanie embeddingów w bazie wektorowej...',
+                'Krok 4 — wybierz sugestię.',
+                'Krok 5 — symulacja embeddingu zapytania...',
+                'Krok 6/7 — symulacja wyszukiwania wektorowego...',
+                'Krok 6/7 — pobrano odpowiedni fragment wiedzy.',
+                'Krok 8 — rozszerzanie promptu o kontekst...',
+                'Krok 9 — generowanie odpowiedzi...',
+                'Gotowe. Kliknij „Nowe Zapytanie" lub „Resetuj".'
+            ];
+            const el = statusMessage.querySelector('.status-text');
+            const text = messages[currentStep] || messages[10];
+            if (el) el.textContent = text;
+            else statusMessage.textContent = text;
         }
 
         function updateUI() {
@@ -790,156 +1075,117 @@
 
             const limit = (currentStep > 3) ? 4 : currentStep;
             for (let i = 1; i < limit; i++) {
-                 const stepEl = getStepElement(i);
-                 if (stepEl) {
-                     stepEl.classList.remove('step-active', 'step-complete');
-                 }
-             }
-             for (let i = currentStep; i <= 9; i++) {
-                 const stepEl = getStepElement(i);
-                 if (stepEl) {
-                     stepEl.classList.remove('step-active', 'step-complete');
-                 }
-             }
-            arrowConnectors.forEach(arrow => arrow.classList.remove('active'));
-
-            allNextButtonContainers.forEach(container => {
-                container.classList.add('hidden');
-                const button = container.querySelector('.next-step-button');
-                if (button) button.disabled = true;
+                const el = getStepElement(i);
+                if (el) el.classList.remove('step-active', 'step-complete');
+            }
+            for (let i = currentStep; i <= 9; i++) {
+                const el = getStepElement(i);
+                if (el) el.classList.remove('step-active', 'step-complete');
+            }
+            arrowConnectors.forEach(a => a.classList.remove('active'));
+            allNextButtonContainers.forEach(c => {
+                c.classList.add('hidden');
+                const btn = c.querySelector('.next-step-button');
+                if (btn) btn.disabled = true;
             });
             newQueryButtonContainer.classList.add('hidden');
 
-
             if (currentStep === 0) {
-                knowledgeChunks = [];
-                knowledgeEmbeddings = {};
-                vectorDatabase = {};
+                knowledgeChunks = []; knowledgeEmbeddings = {}; vectorDatabase = {};
                 resetPhase2();
-
                 setContent(contentElements[1], defaultKnowledge);
                 setContent(contentElements[2], '', true);
                 setContent(contentElements[3], '', true);
-
-
-                statusMessage.textContent = 'Click "Start Simulation" to begin.';
+                updateStatusMessage();
                 startButton.disabled = false;
                 knowledgeDocInput.disabled = false;
-                userInput.disabled = true;
+                userInput.value = '';
                 suggestionsContainer.classList.add('hidden');
-
                 return;
             }
 
-            const activeStepEl = getStepElement(currentStep);
-            if (activeStepEl) {
-                activeStepEl.classList.add('step-active');
-                 // Only activate vertical arrows
-                 document.querySelectorAll('.arrow-connector.vertical').forEach(arrow => {
-                     // Activate if it's before the current step's container
-                     const stepNum = parseInt(arrow.previousElementSibling?.querySelector('.next-button-container')?.dataset.step || '0', 10);
-                     const nextStepNum = parseInt(arrow.nextElementSibling?.querySelector('.step')?.id.replace('step','') || '0', 10);
-
-                     if (stepNum < currentStep && nextStepNum >= currentStep) {
-                          arrow.classList.add('active');
-                     } else if (currentStep > 3 && stepNum === 3 && currentStep >= 4) { // Activate arrow between phases
-                          arrow.classList.add('active');
-                     }
-                 });
+            const activeEl = getStepElement(currentStep);
+            if (activeEl) {
+                activeEl.classList.add('step-active');
+                document.querySelectorAll('.arrow-connector.vertical').forEach(arrow => {
+                    const stepNum = parseInt(arrow.previousElementSibling?.querySelector('.next-button-container')?.dataset.step || '0', 10);
+                    const nextStepNum = parseInt(arrow.nextElementSibling?.querySelector('.step')?.id.replace('step', '') || '0', 10);
+                    if (stepNum < currentStep && nextStepNum >= currentStep) arrow.classList.add('active');
+                    else if (currentStep > 3 && stepNum === 3 && currentStep >= 4) arrow.classList.add('active');
+                });
             }
 
             for (let i = 1; i < currentStep; i++) {
-                const completedStepEl = getStepElement(i);
-                if (completedStepEl && !completedStepEl.classList.contains('step-active')) {
-                    completedStepEl.classList.add('step-complete');
-                     // Activate the arrow *immediately following* the completed step's container
-                     let container = completedStepEl.closest('.step-container');
-                     let nextSibling = container?.nextElementSibling;
-                     while(nextSibling && !nextSibling.classList.contains('step-container')) {
-                        if(nextSibling.classList.contains('arrow-connector')) {
-                            nextSibling.classList.add('active');
-                            break;
-                        }
-                        nextSibling = nextSibling.nextElementSibling;
-                     }
+                const el = getStepElement(i);
+                if (el && !el.classList.contains('step-active')) {
+                    el.classList.add('step-complete');
+                    let next = el.closest('.step-container')?.nextElementSibling;
+                    while (next && !next.classList.contains('step-container')) {
+                        if (next.classList.contains('arrow-connector')) { next.classList.add('active'); break; }
+                        next = next.nextElementSibling;
+                    }
                 }
             }
             if (currentStep >= 8 && getStepElement(67)) {
-                 getStepElement(67).classList.add('step-complete');
-                 let container = getStepElement(67).closest('.step-container');
-                 let nextSibling = container?.nextElementSibling;
-                 while(nextSibling && !nextSibling.classList.contains('step-container')) {
-                    if(nextSibling.classList.contains('arrow-connector')) {
-                        nextSibling.classList.add('active');
-                        break;
-                    }
-                    nextSibling = nextSibling.nextElementSibling;
-                 }
+                getStepElement(67).classList.add('step-complete');
+                let next = getStepElement(67).closest('.step-container')?.nextElementSibling;
+                while (next && !next.classList.contains('step-container')) {
+                    if (next.classList.contains('arrow-connector')) { next.classList.add('active'); break; }
+                    next = next.nextElementSibling;
+                }
             }
-             if (currentStep >= 4) {
-                 for (let i = 1; i <= 3; i++) {
-                     const phase1Step = getStepElement(i);
-                     if (phase1Step) phase1Step.classList.add('step-complete');
-                     let container = phase1Step.closest('.step-container');
-                     let nextSibling = container?.nextElementSibling;
-                      while(nextSibling && !nextSibling.classList.contains('step-container')) {
-                        if(nextSibling.classList.contains('arrow-connector')) {
-                            nextSibling.classList.add('active');
-                            break;
-                        }
-                        nextSibling = nextSibling.nextElementSibling;
-                     }
-                 }
-             }
+            if (currentStep >= 4) {
+                for (let i = 1; i <= 3; i++) {
+                    const el = getStepElement(i);
+                    if (el) el.classList.add('step-complete');
+                    let next = el?.closest('.step-container')?.nextElementSibling;
+                    while (next && !next.classList.contains('step-container')) {
+                        if (next.classList.contains('arrow-connector')) { next.classList.add('active'); break; }
+                        next = next.nextElementSibling;
+                    }
+                }
+            }
 
-            setContent(contentElements[2], knowledgeChunks.length > 0 ? knowledgeChunks.map((chunk, i) => `<div class="chunk-item">${i + 1}. ${chunk}</div>`).join('') : '', true);
-             const vectorDbHTML = Object.keys(vectorDatabase).length > 0 && knowledgeChunks.length > 0 ? knowledgeChunks.map((chunk, index) => {
-                 const embeddingString = knowledgeEmbeddings.hasOwnProperty(index) ? knowledgeEmbeddings[index].string : '[...]';
-                 return `<div class="chunk-vector-item">
-                             <span class="chunk-text">${index + 1}. ${chunk}</span>
-                             <span class="vector-rep">Embedding: ${embeddingString}</span>
-                         </div>`;
-             }).join('') : '';
-             setContent(contentElements[3], vectorDbHTML, true);
+            setContent(contentElements[2],
+                knowledgeChunks.length > 0
+                    ? knowledgeChunks.map((c, i) => `<div class="chunk-item">${i + 1}. ${escapeHtml(c)}</div>`).join('')
+                    : '', true);
+
+            const vectorDbHTML = Object.keys(vectorDatabase).length > 0 && knowledgeChunks.length > 0
+                ? knowledgeChunks.map((chunk, index) => {
+                    const emb = knowledgeEmbeddings[index]?.string || '[...]';
+                    return `<div class="chunk-vector-item"><span class="chunk-text">${index + 1}. ${escapeHtml(chunk)}</span><span class="vector-rep">${escapeHtml(emb)}</span></div>`;
+                }).join('') : '';
+            setContent(contentElements[3], vectorDbHTML, true);
             setContent(contentElements[5], queryEmbeddingString);
 
             let retrievedHTML = '';
-            if (currentStep >= 7 && retrievedChunkInfo.text) {
-                 retrievedHTML = `
-                    <div>
-                        <span class="info-label">Query Embedding:</span>
-                        <span class="info-content">${queryEmbeddingString || 'N/A'}</span>
-                    </div>
-                    <div>
-                        <span class="info-label">Retrieved Chunk:</span>
-                        <span class="info-content chunk-text">${retrievedChunkInfo.text}</span>
-                    </div>
-                     <div>
-                        <span class="info-label">Chunk Embedding:</span>
-                        <span class="info-content">${retrievedChunkInfo.embedding || 'N/A'}</span>
-                    </div>
-                    <div>
-                        <span class="info-label">Similarity Score:</span>
-                        <span class="info-content score">${retrievedChunkInfo.score.toFixed(3)}</span>
-                    </div>
-                 `;
-            } else if (currentStep >= 7) {
-                 retrievedHTML = `<div class="not-found">No relevant chunk found (Score: ${retrievedChunkInfo.score.toFixed(3)}).</div>`;
+            if (currentStep >= 7) {
+                if (retrievedChunks.length > 0 && retrievedChunks[0].score > 0) {
+                    const itemsHTML = retrievedChunks.map((r, i) => `
+                        <div class="ranked-item ${i === 0 ? 'winner' : ''}">
+                            <div class="ranked-rank">#${i + 1}</div>
+                            <div class="ranked-text">${escapeHtml(r.text)}</div>
+                            <div class="ranked-score">${r.score.toFixed(3)}</div>
+                        </div>`).join('');
+                    retrievedHTML = `
+                        <div><span class="info-label">Embedding zapytania</span><span class="info-content">${escapeHtml(queryEmbeddingString) || 'N/D'}</span></div>
+                        <div><span class="info-label">Top-${retrievedChunks.length} ranking podobieństwa (cosine)</span><div class="ranked-list">${itemsHTML}</div></div>`;
+                } else {
+                    retrievedHTML = `<div class="not-found">Nie znaleziono pasującego fragmentu.</div>`;
+                }
             }
             setContent(contentElements[67], retrievedHTML, true);
-
-            setContent(contentElements[8], combinedPromptText ? combinedPromptText.replace(/\n/g, '<br>') : '', true);
+            setContent(contentElements[8], combinedPromptText);
             setContent(contentElements[9], answer);
 
             updateStatusMessage();
             startButton.disabled = true;
             knowledgeDocInput.disabled = true;
-            userInput.disabled = currentStep !== 4;
             userInputError.classList.add('hidden');
 
             if (currentStep === 4) {
                 suggestionsContainer.classList.remove('hidden');
-                userInput.focus();
             } else {
                 suggestionsContainer.classList.add('hidden');
             }
@@ -948,48 +1194,24 @@
                 newQueryButtonContainer.classList.remove('hidden');
                 newQueryButton.disabled = false;
             } else if (currentStep < 9) {
-                let buttonStepToShow = currentStep;
-                if (currentStep === 6) {
-                    buttonStepToShow = null;
-                } else if (currentStep === 7) {
-                    buttonStepToShow = '67';
-                }
-
-                if (buttonStepToShow !== null) {
-                    const currentContainer = document.querySelector(`.next-button-container[data-step="${buttonStepToShow}"]`);
-                    if (currentContainer) {
-                        currentContainer.classList.remove('hidden');
-                        const button = currentContainer.querySelector('.next-step-button');
-                        if (button) {
-                            button.disabled = false;
-                        }
+                let show = currentStep;
+                if (currentStep === 6) show = null;
+                else if (currentStep === 7) show = '67';
+                if (show !== null) {
+                    const container = document.querySelector(`.next-button-container[data-step="${show}"]`);
+                    if (container) {
+                        container.classList.remove('hidden');
+                        const btn = container.querySelector('.next-step-button');
+                        if (btn) btn.disabled = false;
                     }
                 }
             }
         }
 
-        function updateStatusMessage() {
-             const messages = [
-                 "Simulation Reset. Click Start.",
-                 "Step 1: Processing knowledge document...",
-                 "Step 2: Chunking document...",
-                 "Step 3: Storing chunk embeddings in Vector DB...",
-                 "Step 4: Please enter your query or select a suggestion.",
-                 "Step 5: Simulating topic-based embedding for query...",
-                 "Step 6/7: Simulating Vector DB query & similarity...",
-                 "Step 6/7: ...Retrieved relevant knowledge chunk.",
-                 "Step 8: Augmenting LLM prompt with context...",
-                 "Step 9: Simulating final answer generation...",
-                 "Simulation Complete! Click 'Run New Query' or 'Reset All'."
-             ];
-             statusMessage.textContent = messages[currentStep] || messages[10];
-         }
-
         startButton.addEventListener('click', () => {
             if (currentStep === 0) {
                 currentStep = 1;
-                const knowledgeText = knowledgeDocInput.value.trim() || defaultKnowledge;
-                knowledgeDocInput.value = knowledgeText;
+                knowledgeDocInput.value = knowledgeDocInput.value.trim() || defaultKnowledge;
                 updateUI();
             }
         });
@@ -997,38 +1219,23 @@
         nextButtons.forEach(button => {
             button.addEventListener('click', () => {
                 if (currentStep >= 9) return;
-
                 if (currentStep === 4) {
                     userQuery = userInput.value.trim();
                     if (!userQuery) {
-                        userInputError.textContent = "Please enter a query or select a suggestion.";
+                        userInputError.textContent = 'Proszę wybrać sugestię.';
                         userInputError.classList.remove('hidden');
-                        userInput.focus();
                         return;
-                    } else {
-                        userInputError.classList.add('hidden');
                     }
+                    userInputError.classList.add('hidden');
                 }
-
-                if (currentStep === 1) {
-                    setContent(contentElements[2], '', true);
-                    knowledgeChunks = [];
-                }
-                else if (currentStep === 2) {
-                    setContent(contentElements[3], '', true);
-                    vectorDatabase = {};
-                }
-                 else if (currentStep === 5) {
-                    setContent(contentElements[67], '', true);
-                    retrievedChunkInfo = { text: '', embedding: '', score: 0 };
-                }
-
+                if (currentStep === 1) { setContent(contentElements[2], '', true); knowledgeChunks = []; }
+                else if (currentStep === 2) { setContent(contentElements[3], '', true); vectorDatabase = {}; }
+                else if (currentStep === 5) { setContent(contentElements[67], '', true); retrievedChunks = []; }
 
                 const previousStep = currentStep;
                 currentStep++;
                 button.disabled = true;
                 button.closest('.next-button-container')?.classList.add('hidden');
-
 
                 let stepDelay = 300;
                 let action = () => {};
@@ -1036,51 +1243,39 @@
                 switch (currentStep) {
                     case 2:
                         action = () => {
-                            const knowledgeText = knowledgeDocInput.value.trim() || defaultKnowledge;
-                            knowledgeChunks = chunkText(knowledgeText, 3);
+                            const text = knowledgeDocInput.value.trim() || defaultKnowledge;
+                            knowledgeChunks = chunkText(text, 3);
                             knowledgeEmbeddings = {};
-                            knowledgeChunks.forEach((chunk, index) => {
-                                knowledgeEmbeddings[index] = simulateEmbedding(chunk);
-                            });
+                            knowledgeChunks.forEach((chunk, i) => { knowledgeEmbeddings[i] = simulateEmbedding(chunk); });
                         };
                         break;
                     case 3:
                         action = () => {
                             vectorDatabase = {};
-                            for (const index in knowledgeEmbeddings) {
-                                vectorDatabase[index] = knowledgeEmbeddings[index].vector;
-                            }
+                            for (const i in knowledgeEmbeddings) vectorDatabase[i] = knowledgeEmbeddings[i].vector;
                         };
                         break;
-                    case 4:
-                        stepDelay = 50;
-                        action = () => {};
-                        break;
+                    case 4: stepDelay = 50; break;
                     case 5:
                         action = () => {
-                            const embeddingResult = simulateEmbedding(userQuery);
-                            queryEmbeddingVector = embeddingResult.vector;
-                            queryEmbeddingString = embeddingResult.string;
+                            const r = simulateEmbedding(userQuery);
+                            queryEmbeddingVector = r.vector;
+                            queryEmbeddingString = r.string;
                         };
                         break;
-                    case 6:
-                        stepDelay = 500;
-                        action = () => {};
-                        break;
-                    case 7:
-                        action = () => {};
-                        stepDelay = 0;
-                        break;
+                    case 6: stepDelay = 500; break;
+                    case 7: stepDelay = 0; break;
                     case 8:
                         action = () => {
-                            combinedPromptText = `Context:\n${retrievedChunkInfo.text || 'No context found.'}\n\n---\n\nQuestion:\n${userQuery}\n\n---\n\nAnswer:`;
+                            const contextText = retrievedChunks.length > 0 && retrievedChunks[0].score > 0
+                                ? retrievedChunks.map((r, i) => `[Fragment ${i + 1} · score ${r.score.toFixed(3)}]\n${r.text}`).join('\n\n')
+                                : 'Brak kontekstu.';
+                            combinedPromptText = `Kontekst:\n${contextText}\n\n---\n\nPytanie:\n${userQuery}\n\n---\n\nOdpowiedź:`;
                         };
                         break;
                     case 9:
                         stepDelay = 600;
-                        action = () => {
-                            answer = simulateLLM(combinedPromptText);
-                        };
+                        action = () => { answer = simulateLLM(combinedPromptText); };
                         break;
                 }
 
@@ -1088,52 +1283,98 @@
 
                 simulationTimeout = setTimeout(() => {
                     action();
-
                     if (previousStep === 5 && currentStep === 6) {
                         currentStep = 7;
-                        const searchResult = simulateVectorSearch(queryEmbeddingVector, vectorDatabase);
-                        if (searchResult.index !== -1 && knowledgeChunks[searchResult.index]) {
-                             retrievedChunkInfo.text = knowledgeChunks[searchResult.index];
-                             retrievedChunkInfo.embedding = knowledgeEmbeddings[searchResult.index]?.string || 'N/A';
-                             retrievedChunkInfo.score = searchResult.score;
-                        } else {
-                             retrievedChunkInfo = { text: '', embedding: '', score: searchResult.score };
-                             console.log("No relevant chunk found or index out of bounds.");
-                        }
+                        const ranked = simulateVectorSearch(queryEmbeddingVector, vectorDatabase);
+                        retrievedChunks = ranked
+                            .filter(r => knowledgeChunks[r.index])
+                            .map(r => ({
+                                index: r.index,
+                                text: knowledgeChunks[r.index],
+                                embedding: knowledgeEmbeddings[r.index] || { vector: [], string: '' },
+                                score: r.score
+                            }));
                         updateStatusMessage();
                         updateUI();
                     } else if (currentStep !== 7) {
                         updateUI();
                     }
-
                 }, stepDelay);
             });
         });
 
-        newQueryButton.addEventListener('click', () => {
-            resetPhase2();
-            currentStep = 4;
-            updateUI();
+        newQueryButton.addEventListener('click', () => { stopAutoPlay(); resetPhase2(); currentStep = 4; updateUI(); });
+        resetButton.addEventListener('click', () => { stopAutoPlay(); currentStep = 0; updateUI(); });
+
+        function startAutoPlay() {
+            autoPlayActive = true;
+            autoButton.classList.add('is-playing');
+            autoLabel.textContent = 'Stop';
+            autoPlayTick();
+        }
+
+        function stopAutoPlay() {
+            autoPlayActive = false;
+            clearTimeout(autoPlayTimer);
+            autoButton.classList.remove('is-playing');
+            autoLabel.textContent = 'Auto';
+        }
+
+        function autoPlayTick() {
+            if (!autoPlayActive) return;
+            if (currentStep === 9) { stopAutoPlay(); return; }
+            if (currentStep === 0) {
+                startButton.click();
+            } else if (currentStep === 4) {
+                if (!userInput.value.trim()) {
+                    userInput.value = suggestionButtons[0]?.getAttribute('data-query') || '';
+                }
+                const btn = document.querySelector('.next-button-container[data-step="4"] .next-step-button');
+                if (btn && !btn.disabled) btn.click();
+            } else {
+                const visible = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)');
+                if (visible) visible.click();
+            }
+            autoPlayTimer = setTimeout(autoPlayTick, 1100);
+        }
+
+        autoButton.addEventListener('click', () => {
+            if (autoPlayActive) stopAutoPlay();
+            else startAutoPlay();
         });
 
-        resetButton.addEventListener('click', () => {
-            currentStep = 0;
-            updateUI();
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+            const active = document.activeElement;
+            if (active?.tagName === 'TEXTAREA') return;
+            const visibleNext = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)');
+            if (visibleNext) {
+                e.preventDefault();
+                visibleNext.click();
+                return;
+            }
+            if (currentStep === 0 && !startButton.disabled) {
+                e.preventDefault();
+                startButton.click();
+                return;
+            }
+            if (currentStep === 9 && !newQueryButtonContainer.classList.contains('hidden')) {
+                e.preventDefault();
+                newQueryButton.click();
+            }
         });
 
         suggestionButtons.forEach(button => {
             button.addEventListener('click', () => {
-                 if (currentStep === 4) {
+                if (currentStep === 4) {
                     userInput.value = button.getAttribute('data-query');
                     userInputError.classList.add('hidden');
-                    userInput.focus();
-                 }
+                }
             });
         });
 
         lucide.createIcons();
         updateUI();
-
     </script>
 
 </body>
