@@ -338,6 +338,10 @@ body[data-variant="notebook"] .step-title .icon { margin-top: 3px; }
 body[data-variant="notebook"] .step-note { padding-left: 0; }
 body[data-variant="notebook"] textarea { min-height: 225px; }
 body[data-variant="presentation"] .step-rail { margin-top: 20px; }
+body[data-variant="presentation"] #startButton, body[data-variant="presentation"] #autoButton, body[data-variant="presentation"] #resetButton, body[data-variant="presentation"] .next-button-container { display: none; }
+body[data-variant="presentation"] .rail-button[data-reachable="true"] { cursor: pointer; }
+.appbar-reset { display: none; }
+body[data-variant="presentation"] .appbar-reset { display: inline-flex; }
 body[data-variant="presentation"] .rail-button { min-height: 88px; font-size: var(--body-sm); }
 body[data-variant="presentation"] .step { padding: 28px 32px; }
 body[data-variant="presentation"] .content-display { max-height: none; }
@@ -1108,6 +1112,7 @@ const T = {
     footer: 'Symulacja edukacyjna · bez połączenia z modelem AI', source: 'Przykładowy dokument i odpowiedzi: PL', hint: '= Dalej', generating: 'Generowanie odpowiedzi…',
     questions: ['Najbliższa planeta?', 'Pierścienie Saturna?', 'Księżyce Jowisza?', 'Największe zwierzę?'], suggestions: 'Wybierz pytanie', queryPlaceholder: 'Wybrane pytanie pojawi się tutaj', chooseError: 'Proszę wybrać sugestię.',
     placeholders: ['Fragmenty pojawią się po podziale dokumentu.', 'Wektory pojawią się po przygotowaniu bazy.', 'Wektor pytania pojawi się po osadzeniu.', 'Ranking pojawi się po wyszukaniu fragmentów.', 'Prompt pojawi się po połączeniu kontekstu z pytaniem.', 'Odpowiedź pojawi się na końcu procesu.'],
+    startPresentation: 'Edytuj dokument, a następnie naciśnij Enter lub kliknij kolejny etap.',
     steps: ['Edytuj dokument, a następnie kliknij „Uruchom”.', 'Przetwarzanie dokumentu wiedzy…', 'Podział tekstu na fragmenty…', 'Zapisywanie embeddingów w bazie…', 'Wybierz pytanie z czterech sugestii.', 'Osadzanie zapytania…', 'Wyszukiwanie podobnych fragmentów…', 'Ranking podobieństwa jest gotowy.', 'Łączenie pytania z kontekstem…', 'Odpowiedź gotowa. Możesz zadać nowe pytanie.']
   },
   en: {
@@ -1120,11 +1125,13 @@ const T = {
     footer: 'Educational simulation · no AI model connection', source: 'Example document and answers: PL', hint: '= Next', generating: 'Generating the answer…',
     questions: ['Closest planet?', 'Saturn’s rings?', 'Jupiter’s moons?', 'Largest animal?'], suggestions: 'Choose a question', queryPlaceholder: 'Your selected question appears here', chooseError: 'Choose one of the suggested questions.',
     placeholders: ['Chunks appear after splitting the document.', 'Vectors appear after preparing the database.', 'The question vector appears after embedding.', 'The ranking appears after retrieving chunks.', 'The prompt appears after combining context and question.', 'The answer appears at the end of the process.'],
+    startPresentation: 'Edit the document, then press Enter or click the next stage.',
     steps: ['Edit the document, then select Start.', 'Processing the knowledge document…', 'Splitting the text into chunks…', 'Storing embeddings in the database…', 'Choose a question from the four suggestions.', 'Embedding the question…', 'Searching for similar chunks…', 'Similarity ranking is ready.', 'Combining question and context…', 'Answer ready. You can ask a new question.']
   }
 };
 // ─── State ───
-const App = { variant: 'notebook', lang: 'pl', inspected: 'step1', lastStep: -1 };
+const App = { variant: 'notebook', lang: 'pl', inspected: 'step1', lastStep: -1, advanceTarget: null, advanceTimer: null };
+const STAGE_STEPS = [1, 2, 3, 4, 5, 7, 8, 9];
 try { const savedLanguage = localStorage.getItem('ragsim-language'); if (['pl', 'en'].includes(savedLanguage)) App.lang = savedLanguage; } catch {}
 // ─── DOM refs ───
 const viewCards = VIEW_IDS.map(id => document.getElementById(id));
@@ -1147,6 +1154,20 @@ function setButtonText(button, text) {
 }
 function activeId() { return currentStep === 0 ? 'step1' : currentStep === 6 || currentStep === 7 ? 'step67' : `step${currentStep}`; }
 function inspectStage(id) { App.inspected = id; renderView(); }
+function stopAdvance() { App.advanceTarget = null; clearTimeout(App.advanceTimer); }
+// Presentation: reach a later stage by performing every step in between. Stops at the question stage until a question is chosen.
+function advanceTo(targetStep) {
+  App.advanceTarget = targetStep;
+  const tick = () => {
+    if (App.advanceTarget === null || App.variant !== 'presentation') return stopAdvance();
+    if (currentStep >= App.advanceTarget || currentStep >= 9) return stopAdvance();
+    if (currentStep === 4 && !userInput.value.trim()) return stopAdvance();
+    if (currentStep === 0) { if (!startButton.disabled) startButton.click(); }
+    else { const next = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)'); if (next) next.click(); }
+    App.advanceTimer = setTimeout(tick, 200);
+  };
+  tick();
+}
 // ─── Render ───
 function renderView() {
   const currentId = activeId();
@@ -1164,6 +1185,7 @@ function renderView() {
     const rail = viewRail.querySelector(`[data-view="${card.id}"]`);
     rail.dataset.inspected = String(card.id === App.inspected);
     if (card.id === currentId) rail.setAttribute('aria-current', 'step'); else rail.removeAttribute('aria-current');
+    rail.dataset.reachable = String(App.variant === 'presentation' && STAGE_STEPS[i] > currentStep && currentStep < 9);
     setText(rail.querySelector('.rail-name'), t('names')[i]);
     setText(card.querySelector('.view-title'), t('names')[i]);
     setText(card.querySelector('.step-note'), t('notes')[i]);
@@ -1189,7 +1211,8 @@ function renderView() {
   viewProgress.setAttribute('aria-valuetext', currentStep === 0 ? t('ready') : `${t('progress')} ${index + 1}: ${t('names')[index]}`);
   viewProgressFill.style.width = `${value / 8 * 100}%`;
   // Keep the original live status untouched; translate its sibling presentation label only.
-  setText(document.getElementById('view-status'), currentStep === 9 && !answer ? t('generating') : t('steps')[currentStep]);
+  setText(document.getElementById('view-status'), currentStep === 9 && !answer ? t('generating') : currentStep === 0 && App.variant === 'presentation' ? t('startPresentation') : t('steps')[currentStep]);
+  setButtonText(chromeBar.querySelector('.appbar-reset'), t('reset'));
   const sourceStatus = statusMessage.querySelector('.status-text');
   sourceStatus.style.display = 'none';
   suggestionButtons.forEach((button, i) => { button.setAttribute('aria-pressed', String(button.dataset.query === userInput.value)); setText(button, t('questions')[i]); });
@@ -1207,7 +1230,11 @@ function renderView() {
 function listenView() {
   viewRail.addEventListener('click', event => {
     const button = event.target.closest('[data-view]');
-    if (button) inspectStage(button.dataset.view);
+    if (button) {
+      const targetStep = STAGE_STEPS[VIEW_IDS.indexOf(button.dataset.view)];
+      if (App.variant === 'presentation' && targetStep > currentStep && currentStep < 9) advanceTo(targetStep);
+      else inspectStage(button.dataset.view);
+    }
     if (event.target.closest('.return-active')) inspectStage(activeId());
   });
 
@@ -1250,7 +1277,7 @@ function initView() {
   const caption = document.createElement('p'); caption.className = 'rail-caption'; viewRail.append(caption);
   const source = document.createElement('span'); source.className = 'source-note'; document.querySelector('footer').append(source);
   document.querySelectorAll('section').forEach((section, i) => section.querySelector('.phase-tag').id = `phase${i + 1}-title`);
-  initChrome(); listenView(); renderView();
+  initChrome(); lucide.createIcons(); listenView(); renderView();
 
 }
 // ─── Application chrome ───
@@ -1264,6 +1291,7 @@ const chromeChecks = document.createElement('details');
 function ct(key) { return CHROME_T[App.lang][key]; }
 function setViewMode(mode) {
   if (!['notebook', 'presentation'].includes(mode)) return;
+  stopAdvance();
   App.variant = mode;
   App.inspected = activeId();
   renderView();
@@ -1305,7 +1333,7 @@ App.verify = function() {
 function initChrome() {
   chromeBar.className = 'appbar';
   const actions = document.createElement('div'); actions.className = 'appbar-actions';
-  actions.innerHTML = '<span class="appbar-hint" aria-hidden="true">Alt+P</span><div class="view-switch" role="group"><button type="button" data-view-mode="notebook" aria-pressed="true">Notatnik</button><button type="button" data-view-mode="presentation" aria-pressed="false">Tryb prezentacji</button></div><button type="button" class="btn" id="app-language">EN</button>';
+  actions.innerHTML = '<span class="appbar-hint" aria-hidden="true">Alt+P</span><button type="button" class="btn appbar-reset" id="app-reset"><i data-lucide="rotate-cw"></i></button><div class="view-switch" role="group"><button type="button" data-view-mode="notebook" aria-pressed="true">Notatnik</button><button type="button" data-view-mode="presentation" aria-pressed="false">Tryb prezentacji</button></div><button type="button" class="btn" id="app-language">EN</button>';
   chromeBar.append(document.querySelector('.app-logo'), actions);
   document.body.prepend(chromeBar);
   chromeAnnouncement.className = 'sr-only'; chromeAnnouncement.setAttribute('role', 'status'); chromeAnnouncement.setAttribute('aria-live', 'polite'); document.body.append(chromeAnnouncement);
@@ -1315,6 +1343,7 @@ function initChrome() {
   chromeBar.addEventListener('click', event => {
     const button = event.target.closest('[data-view-mode]');
     if (button) setViewMode(button.dataset.viewMode);
+    if (event.target.closest('#app-reset')) { stopAdvance(); resetButton.click(); window.scrollTo({ top: 0, behavior: 'instant' }); }
     if (event.target.closest('#app-language')) {
       App.lang = App.lang === 'pl' ? 'en' : 'pl';
       try { localStorage.setItem('ragsim-language', App.lang); } catch {}
