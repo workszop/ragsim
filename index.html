@@ -200,7 +200,7 @@ header h1 { margin: 0; font: 600 var(--app-title)/1.12 var(--font-display); lett
 .header-sub { color: var(--app-muted); margin: 7px 0 0; }
 .app-logo { display: flex; gap: 1px; align-items: center; font: 700 var(--h4)/1 var(--font-display); }
 .app-logo img { width: 64px; height: 52px; object-fit: contain; }
-.app-toolbar { position: sticky; top: 0; z-index: 5; background: var(--app-bg); padding: 12px 0; border-top: 1px solid var(--app-line); border-bottom: 1px solid var(--app-line); }
+.app-toolbar { display: none; } /* Enter hint, status line and progress bar removed: they only took space. */
 .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border: 1px solid var(--app-line); padding: 8px 15px; background: var(--app-surface); color: var(--app-text); border-radius: var(--r-sm); font-weight: 600; }
 .btn svg { width: 16px; height: 16px; }
@@ -338,10 +338,9 @@ body[data-variant="notebook"] .step-title .icon { margin-top: 3px; }
 body[data-variant="notebook"] .step-note { padding-left: 0; }
 body[data-variant="notebook"] textarea { min-height: 225px; }
 body[data-variant="presentation"] .step-rail { margin-top: 20px; }
-body[data-variant="presentation"] #startButton, body[data-variant="presentation"] #autoButton, body[data-variant="presentation"] #resetButton, body[data-variant="presentation"] .next-button-container { display: none; }
+#startButton, #autoButton, #resetButton, body[data-variant="presentation"] .next-button-container { display: none; }
 body[data-variant="presentation"] .rail-button[data-reachable="true"] { cursor: pointer; }
-.appbar-reset { display: none; }
-body[data-variant="presentation"] .appbar-reset { display: inline-flex; }
+.appbar-reset { display: inline-flex; }
 body[data-variant="presentation"] .rail-button { min-height: 88px; font-size: var(--body-sm); }
 body[data-variant="presentation"] .step { padding: 28px 32px; }
 body[data-variant="presentation"] .content-display { max-height: none; }
@@ -825,6 +824,8 @@ window.VIEW_LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAD6CAYAAACI
                 knowledgeDocInput.disabled = false;
                 userInput.value = '';
                 suggestionsContainer.classList.add('hidden');
+                const firstContainer = document.querySelector('.next-button-container[data-step="1"]');
+                if (firstContainer) { firstContainer.classList.remove('hidden'); const firstBtn = firstContainer.querySelector('.next-step-button'); if (firstBtn) firstBtn.disabled = false; }
                 return;
             }
 
@@ -943,6 +944,7 @@ window.VIEW_LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAD6CAYAAACI
         nextButtons.forEach(button => {
             button.addEventListener('click', () => {
                 if (currentStep >= 9) return;
+                if (currentStep === 0) startButton.click();
                 if (currentStep === 4) {
                     userQuery = userInput.value.trim();
                     if (!userQuery) {
@@ -1023,6 +1025,8 @@ window.VIEW_LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAD6CAYAAACI
                     } else if (currentStep !== 7) {
                         updateUI();
                     }
+                    // Notebook: once the new content is in place, centre that step in the viewport.
+                    if (document.body.dataset.variant !== 'presentation') setTimeout(() => getStepElement(currentStep)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 220);
                 }, stepDelay);
             });
         });
@@ -1071,15 +1075,15 @@ window.VIEW_LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAD6CAYAAACI
             if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
             const active = document.activeElement;
             if (active?.tagName === 'TEXTAREA') return;
+            if (currentStep === 0 && !startButton.disabled) {
+                e.preventDefault();
+                startButton.click();
+                return;
+            }
             const visibleNext = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)');
             if (visibleNext) {
                 e.preventDefault();
                 visibleNext.click();
-                return;
-            }
-            if (currentStep === 0 && !startButton.disabled) {
-                e.preventDefault();
-                startButton.click();
                 return;
             }
             if (currentStep === 9 && !newQueryButtonContainer.classList.contains('hidden')) {
@@ -1113,7 +1117,7 @@ const T = {
     questions: ['Najbliższa planeta?', 'Pierścienie Saturna?', 'Księżyce Jowisza?', 'Największe zwierzę?'], suggestions: 'Wybierz pytanie', queryPlaceholder: 'Wybrane pytanie pojawi się tutaj', chooseError: 'Proszę wybrać sugestię.',
     placeholders: ['Fragmenty pojawią się po podziale dokumentu.', 'Wektory pojawią się po przygotowaniu bazy.', 'Wektor pytania pojawi się po osadzeniu.', 'Ranking pojawi się po wyszukaniu fragmentów.', 'Prompt pojawi się po połączeniu kontekstu z pytaniem.', 'Odpowiedź pojawi się na końcu procesu.'],
     startPresentation: 'Edytuj dokument, a następnie naciśnij Enter lub kliknij kolejny etap.',
-    steps: ['Edytuj dokument, a następnie kliknij „Uruchom”.', 'Przetwarzanie dokumentu wiedzy…', 'Podział tekstu na fragmenty…', 'Zapisywanie embeddingów w bazie…', 'Wybierz pytanie z czterech sugestii.', 'Osadzanie zapytania…', 'Wyszukiwanie podobnych fragmentów…', 'Ranking podobieństwa jest gotowy.', 'Łączenie pytania z kontekstem…', 'Odpowiedź gotowa. Możesz zadać nowe pytanie.']
+    steps: ['Edytuj dokument, a następnie kliknij „Dalej”.', 'Przetwarzanie dokumentu wiedzy…', 'Podział tekstu na fragmenty…', 'Zapisywanie embeddingów w bazie…', 'Wybierz pytanie z czterech sugestii.', 'Osadzanie zapytania…', 'Wyszukiwanie podobnych fragmentów…', 'Ranking podobieństwa jest gotowy.', 'Łączenie pytania z kontekstem…', 'Odpowiedź gotowa. Możesz zadać nowe pytanie.']
   },
   en: {
     title: 'RAG simulator', subtitle: 'From document to answer. See where the model gets its context.',
@@ -1126,7 +1130,7 @@ const T = {
     questions: ['Closest planet?', 'Saturn’s rings?', 'Jupiter’s moons?', 'Largest animal?'], suggestions: 'Choose a question', queryPlaceholder: 'Your selected question appears here', chooseError: 'Choose one of the suggested questions.',
     placeholders: ['Chunks appear after splitting the document.', 'Vectors appear after preparing the database.', 'The question vector appears after embedding.', 'The ranking appears after retrieving chunks.', 'The prompt appears after combining context and question.', 'The answer appears at the end of the process.'],
     startPresentation: 'Edit the document, then press Enter or click the next stage.',
-    steps: ['Edit the document, then select Start.', 'Processing the knowledge document…', 'Splitting the text into chunks…', 'Storing embeddings in the database…', 'Choose a question from the four suggestions.', 'Embedding the question…', 'Searching for similar chunks…', 'Similarity ranking is ready.', 'Combining question and context…', 'Answer ready. You can ask a new question.']
+    steps: ['Edit the document, then select Next.', 'Processing the knowledge document…', 'Splitting the text into chunks…', 'Storing embeddings in the database…', 'Choose a question from the four suggestions.', 'Embedding the question…', 'Searching for similar chunks…', 'Similarity ranking is ready.', 'Combining question and context…', 'Answer ready. You can ask a new question.']
   }
 };
 // ─── State ───
