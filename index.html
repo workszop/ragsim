@@ -1,10 +1,9 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2"><link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2"><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2"><meta name="theme-color" content="#FFD500"><title>Symulator RAG</title><style>/* ============================================================
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2"><link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2"><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2"><meta name="theme-color" content="#FFD500"><title>Symulator RAG</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"><style>/* ============================================================
    edulab – Colors & Type foundation
    Fonts loaded from Google Fonts (CDN). See README "Visual
    Foundations" for substitution notes.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
 
 :root {
   /* ---- Brand fonts ---- */
@@ -190,7 +189,7 @@ body { margin: 0; color: var(--app-text); background: var(--app-bg); font: var(-
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .42; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid var(--blue-600); outline-offset: 3px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid transparent; outline-offset: 3px; box-shadow: var(--focus-ring); }
 button, .step { transition: background .18s, border-color .18s, opacity .18s; }
 .hidden, [hidden] { display: none !important; }
 .top-bar, .header-badge { display: none; }
@@ -202,7 +201,7 @@ header h1 { margin: 0; font: 600 var(--app-title)/1.12 var(--font-display); lett
 .app-logo img { width: 64px; height: 52px; object-fit: contain; }
 .app-toolbar { display: none; } /* Enter hint, status line and progress bar removed: they only took space. */
 .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border: 1px solid var(--app-line); padding: 8px 15px; background: var(--app-surface); color: var(--app-text); border-radius: var(--r-sm); font-weight: 600; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border: 1px solid var(--line-strong); padding: 8px 15px; background: var(--app-surface); color: var(--app-text); border-radius: var(--r-sm); font-weight: 600; }
 .btn svg { width: 16px; height: 16px; }
 .btn:hover:not(:disabled) { background: var(--app-well); }
 .btn-primary, .btn-success { background: var(--app-control); color: var(--app-control-text); border-color: var(--app-control); }
@@ -232,7 +231,7 @@ section { min-width: 0; }
 .step-note { margin: -3px 0 12px; font-size: var(--app-small); color: var(--app-muted); }
 .content-display { background: var(--app-well); border: 0; border-radius: var(--r-sm); padding: 12px; line-height: 1.65; overflow-wrap: anywhere; min-height: 60px; }
 .content-display:empty::before { content: attr(placeholder); color: var(--app-muted); }
-textarea.content-display { width: 100%; min-height: 190px; resize: vertical; display: block; border: 1px solid var(--app-line); }
+textarea.content-display { width: 100%; min-height: 190px; resize: vertical; display: block; border: 1px solid var(--line-strong); }
 textarea:disabled { opacity: 1; }
 .content-display.fade-out { opacity: 0; }
 #chunks, #vectorDb, #inputEmbedding, #combinedPrompt { font-family: var(--font-mono); font-size: var(--app-small); }
@@ -242,10 +241,10 @@ textarea:disabled { opacity: 1; }
 .chunk-item:last-child, .chunk-vector-item:last-child { border-bottom: 0; }
 .chunk-text { display: block; font-family: var(--font-sans); }
 .vector-rep { display: inline-block; color: var(--app-muted); margin-top: 7px; }
-#userInput { width: 100%; padding: 13px 12px; background: var(--app-well); border: 1px dashed var(--app-line); border-radius: var(--r-sm); min-height: 48px; caret-color: transparent; }
+#userInput { width: 100%; padding: 13px 12px; background: var(--app-well); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); min-height: 48px; caret-color: transparent; }
 .suggestions-wrap { margin-top: 12px; }
-.suggestions-label { color: var(--app-muted); font-size: var(--app-small); margin: 0 0 8px; }
-.suggestion-button { padding: 9px 11px; min-height: 42px; border: 1px solid var(--app-line); background: var(--app-surface); border-radius: var(--r-sm); margin: 0 5px 6px 0; }
+.suggestions-label { color: var(--ink); font: 500 12px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; margin: 0 0 8px; }
+.suggestion-button { padding: 9px 11px; min-height: 42px; border: 1px solid var(--line-strong); background: var(--app-surface); border-radius: var(--r-sm); margin: 0 5px 6px 0; }
 .suggestion-button:hover, .suggestion-button[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); }
 .error-text { color: var(--red-600); margin-top: 8px; }
 .arrow-connector { display: none; }
@@ -256,7 +255,7 @@ textarea:disabled { opacity: 1; }
 .ranked-rank, .ranked-score { font: var(--app-small)/1.6 var(--font-mono); }
 .ranked-score { font-weight: 500; }
 .ranked-text { font-size: var(--app-small); }
-.info-label { display: block; margin: 12px 0 5px; font-weight: 600; font-size: var(--app-small); }
+.info-label { display: block; margin: 12px 0 6px; font: 500 12px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink); }
 .info-content { font: var(--app-small)/1.6 var(--font-mono); overflow-wrap: anywhere; }
 #combinedPrompt { white-space: pre-wrap; }
 #finalAnswer { font-size: var(--body); }
@@ -363,6 +362,39 @@ body[data-variant="presentation"] textarea { min-height: 250px; }
   body[data-variant="presentation"] .step { padding: 18px; }
   body[data-variant="presentation"] .rail-button { min-height: 88px; font-size: var(--overline); }
 }
+
+/* ─── Structure (edustyl v2): top bar, page head, section bands ─── */
+:root { --wrap-pad: max(var(--app-gutter), calc((100% - 1040px) / 2)); }
+.appbar { border-bottom-color: var(--line-2); }
+body[data-variant="notebook"] .appbar { padding-inline: var(--wrap-pad); }
+.appbar .app-logo { font: 700 22px/1 var(--font-display); letter-spacing: -.02em; color: var(--ink); }
+.appbar .app-logo img { width: 64px; height: 64px; margin-right: -6px; }
+header { display: block; padding: 44px 0 36px; text-align: left; }
+header > div { width: 100%; }
+header h1 { margin: 0 0 14px; font: 800 clamp(2.3rem, 5vw, 3.3rem)/1.05 var(--font-display); letter-spacing: -.025em; color: var(--ink); }
+.header-sub { margin: 0; font-size: 1.15rem; line-height: 1.6; color: var(--ink-2); }
+h2.phase-tag { margin: 0; }
+body[data-variant="presentation"] header { border-bottom: 1px solid var(--line-2); }
+/* Notebook: the two phases are full-bleed bands, stone / white, each with a ruled section head */
+body[data-variant="notebook"] .page-wrap { padding: 0; }
+body[data-variant="notebook"] header { padding: 44px var(--wrap-pad) 52px; }
+body[data-variant="notebook"] .process-flow-container { margin: 0; }
+body[data-variant="notebook"] section { margin: 0; padding: 52px var(--wrap-pad) 60px; border-top: 1px solid var(--line); }
+body[data-variant="notebook"] section:nth-of-type(odd) { background: var(--paper-2); --app-well: var(--surface); }
+body[data-variant="notebook"] section:nth-of-type(odd) .content-display:not(textarea) { border: 1px solid var(--line-2); }
+body[data-variant="notebook"] section:nth-of-type(odd) .step-active { background: var(--surface); }
+body[data-variant="notebook"] .phase-divider { gap: 14px; padding: 0; margin-bottom: 26px; }
+body[data-variant="notebook"] .phase-tag { font: 700 var(--h2)/1.12 var(--font-display); letter-spacing: -.015em; color: var(--ink); }
+body[data-variant="notebook"] .phase-line { background: var(--line-2); }
+body[data-variant="notebook"] .process-row > .step-container:last-child .step { border-bottom: 0; padding-bottom: 0; }
+body[data-variant="notebook"] footer { margin: 0; padding: 16px var(--wrap-pad) 28px; border-top-color: var(--line); }
+@media (max-width: 768px) {
+  .appbar .app-logo img { width: 48px; height: 48px; }
+  header { padding: 28px 0 32px; }
+  body[data-variant="notebook"] header { padding: 28px var(--wrap-pad) 32px; }
+  body[data-variant="notebook"] section { padding: 36px var(--wrap-pad) 44px; }
+  body[data-variant="notebook"] .phase-tag { font-size: var(--h3); }
+}
 </style></head><body data-variant="notebook" data-language="pl">
 
     <div class="top-bar"></div>
@@ -398,7 +430,7 @@ body[data-variant="presentation"] textarea { min-height: 250px; }
 
             <section aria-labelledby="phase1-title">
                 <div class="phase-divider">
-                    <span class="phase-tag"><strong>01</strong> / Przygotowanie Wiedzy</span>
+                    <h2 class="phase-tag">Przygotowanie wiedzy</h2>
                     <span class="phase-line"></span>
                 </div>
                 <div class="process-row">
@@ -446,7 +478,7 @@ body[data-variant="presentation"] textarea { min-height: 250px; }
 
             <section aria-labelledby="phase2-title">
                 <div class="phase-divider">
-                    <span class="phase-tag"><strong>02</strong> / Zapytanie i Generowanie</span>
+                    <h2 class="phase-tag">Zapytanie i generowanie</h2>
                     <span class="phase-line"></span>
                 </div>
                 <div class="process-row">
@@ -1108,7 +1140,7 @@ const VIEW_IDS = ['step1', 'step2', 'step3', 'step4', 'step5', 'step67', 'step8'
 const T = {
   pl: {
     title: 'Symulator RAG', subtitle: 'Od dokumentu do odpowiedzi. Zobacz, skąd model bierze kontekst.',
-    phases: ['01 / Przygotowanie wiedzy', '02 / Zapytanie i generowanie'],
+    phases: ['Przygotowanie wiedzy', 'Zapytanie i generowanie'],
     names: ['Dokument', 'Podział na fragmenty', 'Baza wektorowa', 'Zapytanie użytkownika', 'Osadzanie zapytania', 'Pobieranie fragmentów', 'Rozszerzenie promptu', 'Generowanie odpowiedzi'],
     notes: ['Edytuj tekst przed uruchomieniem symulacji.', 'Dokument jest dzielony na fragmenty po trzy zdania.', 'Każdy fragment otrzymuje symulowany wektor 12 liczb.', 'Wybierz jedno z czterech pytań. Pole nie służy do pisania.', 'To samo odwzorowanie co dla fragmentów dokumentu.', 'Ranking trzech najbardziej podobnych fragmentów.', 'Pytanie i znaleziony kontekst trafiają do jednego promptu.', 'Odpowiedź regułowa, oparta na pobranym kontekście.'],
     rail: 'Podgląd etapów', return: 'Wróć do aktywnego etapu', preview: 'Kliknięcie etapu zmienia tylko widok, nie przebieg symulacji.',
@@ -1121,7 +1153,7 @@ const T = {
   },
   en: {
     title: 'RAG simulator', subtitle: 'From document to answer. See where the model gets its context.',
-    phases: ['01 / Prepare knowledge', '02 / Retrieve and generate'],
+    phases: ['Prepare knowledge', 'Retrieve and generate'],
     names: ['Knowledge document', 'Split into chunks', 'Vector database', 'User question', 'Embed the question', 'Retrieve chunks', 'Augment the prompt', 'Generate an answer'],
     notes: ['Edit the source text before starting the simulation.', 'The document is split into groups of three sentences.', 'Each chunk gets a simulated vector of 12 numbers.', 'Choose one of four questions. This field is not editable.', 'The same mapping used for the document chunks.', 'The three most similar chunks, ranked by similarity.', 'The question and retrieved context form one prompt.', 'A rule-based answer using the retrieved context.'],
     rail: 'Stage preview', return: 'Return to active stage', preview: 'Selecting a stage changes the view, not the simulation.',
