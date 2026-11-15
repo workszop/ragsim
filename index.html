@@ -1,9 +1,34 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2"><link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2"><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2"><meta name="theme-color" content="#FFD500"><title>Symulator RAG</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"><style>/* ============================================================
-   edulab – Colors & Type foundation
-   Fonts loaded from Google Fonts (CDN). See README "Visual
-   Foundations" for substitution notes.
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=3">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=3">
+<meta name="theme-color" content="#FFD500">
+<title>Symulator RAG</title>
+<meta name="description" content="Krok po kroku: jak system RAG znajduje w dokumencie fragmenty pasujące do pytania i buduje z nich odpowiedź.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+  @keyframes boot-reveal { to { visibility: visible; } }
+  html:not(.app-ready) body { visibility: hidden; animation: boot-reveal 0s 4s forwards; }
+  @media print { html:not(.app-ready) body { visibility: visible; animation: none; } }
+</style>
+<noscript><style>html:not(.app-ready) body { visibility: visible; animation: none; }</style></noscript>
+<script src="https://cdn.jsdelivr.net/npm/lucide@1.57.0/dist/umd/lucide.min.js"
+  integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID"
+  crossorigin="anonymous" async></script>
+<style>
+/* ============================================================
+   edulab - Colors & Type foundation
+   Fonts (Outfit, IBM Plex Sans, Roboto Mono) load from Google Fonts
+   via the <link> tags in tokens/head.html - paste that into <head>.
+   No @import here: it chains requests and blocks rendering.
    ============================================================ */
-
 
 :root {
   /* ---- Brand fonts ---- */
@@ -15,57 +40,69 @@
      RAW COLOR TOKENS
      ============================================================ */
 
-  /* Paper – page background is white; the sand steps are wells/alternating sections */
-  --paper:    #FFFFFF;   /* page background (white)    */
-  --paper-2:  #F5F3F0;   /* alternating section        */
-  --paper-3:  #EAE6E0;   /* deepest sand / wells       */
-  --surface:  #FFFFFF;   /* cards & sheets             */
+  /* Paper - page background is white; the stone steps are bands / wells.
+     Warm neutral grey (no yellow cast) so yellow and the colour blocks stay the
+     loudest thing on the page. Stone v2 (2026-10-10) replaced the cream sand
+     (#FBF7E6 / #F5EDCB), which at 1.07:1 on white did not read as a surface. */
+  --paper:    #FFFFFF;   /* page background (white)                       */
+  --paper-2:  #F5F3F0;   /* stone band: alternating sections, card heads   */
+  --paper-3:  #EAE6E0;   /* deepest stone: wells, table heads, bar tracks  */
+  --surface:  #FFFFFF;   /* cards & sheets                                */
 
-  /* Ink – warm near-black text & lines */
-  --ink:      #1C1917;   /* primary text               */
-  --ink-2:    #44403C;   /* secondary text             */
-  --ink-3:    #625B53;   /* muted / placeholder        */
-  --line:     #E0DBD3;   /* hairline borders           */
-  --line-2:   #C9C2B7; --line-strong: #857C69; /* control borders >= 3:1 */ --track: color-mix(in srgb, var(--ink) 24%, transparent);   /* stronger borders           */
+  /* Ink - warm near-black text & lines */
+  --ink:      #1C1917;   /* primary text                                    */
+  --ink-2:    #44403C;   /* secondary text, 10.3:1 on white                 */
+  --ink-3:    #625B53;   /* muted / placeholder: >= 4.5:1 on every paper step */
+  --line:     #E0DBD3;   /* hairline: dividers, table rows, card heads      */
+  --line-2:   #C9C2B7;   /* stronger: card contours, section rules          */
+  --line-strong: #857C69;/* control boundaries (inputs, ghost buttons,
+                            answer options): >= 3:1 on paper steps (WCAG 1.4.11) */
 
   /* ---- Brand: Yellow main · Blue + Green secondary · Red danger ----
-     Plain saturated colours. A "-soft" tint IS the saturated colour
-     (panels and chips are solid), "-ink" is the text colour ON it:
-     white on blue/green/red, dark ink on yellow. Never colour-on-colour
-     (no green text on green); the saturated colour itself goes only on
-     white or black. */
+     Plain saturated colours. The base colour (--blue) is for large fills,
+     illustrations and large text (>= 24px, or 19px bold). "-soft" is the
+     solid fill for chips and panels that carry small text: it is the
+     AA shade (= "-600"), so its "-ink" (white; dark ink on yellow) reaches
+     4.5:1. A colour used AS text goes only on white and uses "-600".
+     Never colour-on-colour (no green text on green).
+     Gate: python3 scripts/check-contrast.py */
 
-  /* Yellow – primary (buttons, progress, values on dark panels) */
+  /* Yellow - primary (buttons, progress, values on dark panels) */
   --yellow:      #FFD500;
   --yellow-600:  #F0C800;  /* hover / press          */
   --yellow-soft: #FFD500;  /* chip / panel fill      */
   --yellow-ink:  #1C1917;  /* text on yellow         */
 
-  /* Blue – secondary (panels, chips, correct / selected state) */
+  /* Blue - secondary (panels, chips, correct / selected state) */
   --blue:      #1E8FC2;
   --blue-600:  #177AA8;
-  --blue-soft: #177AA8;
+  --blue-soft: #177AA8;   /* = blue-600, white text 4.8:1 */
   --blue-ink:  #FFFFFF;
 
-  /* Green – secondary support (chips, success) */
+  /* Green - secondary support (chips, success) */
   --green:      #00A651;
-  --green-600:  #078342;
-  --green-soft: #078342;
+  --green-600:  #078342;  /* hover / press, AA text shade */
+  --green-soft: #078342;  /* = green-600, white text 4.9:1 */
   --green-ink:  #FFFFFF;
 
-  /* Red – danger / important / wrong (use sparingly) */
+  /* Red - danger / important / wrong (use sparingly) */
   --red:      #E5322D;
   --red-600:  #C92823;
-  --red-soft: #C92823;
+  --red-soft: #C92823;   /* = red-600, white text 5.5:1 */
   --red-ink:  #FFFFFF;
 
-  /* Legacy role aliases – older edulab apps use these names */
+  /* Grape - 5th category tone (colour-coded groups), from the play palette */
+  --grape:      #7A5AC2;
+  --grape-soft: #7A5AC2;  /* white text 5.2:1 */
+  --grape-ink:  #FFFFFF;
+
+  /* Legacy role aliases - older edulab apps use these names */
   --marigold: var(--yellow); --marigold-600: var(--yellow-600); --marigold-soft: var(--yellow-soft); --marigold-ink: var(--yellow-ink);
   --teal:     var(--blue);   --teal-600:     var(--blue-600);   --teal-soft:     var(--blue-soft);   --teal-ink:     var(--blue-ink);
   --sky:      var(--green);                                     --sky-soft:      var(--green-soft);  --sky-ink:      var(--green-ink);
   --coral:    var(--red);    --coral-600:    var(--red-600);    --coral-soft:    var(--red-soft);    --coral-ink:    var(--red-ink);
 
-  /* Play palette – subject/category colours in the kids app */
+  /* Play palette - subject/category colours in the kids app */
   --play-sun:    #FFD500;
   --play-grass:  #00A651;
   --play-berry:  #C6478B;
@@ -85,7 +122,11 @@
   --fg-muted:  var(--ink-2);
   --primary:   var(--yellow);
   --on-primary:#1C1917;      /* dark text on yellow */
+  /* White gap + ink band: >= 3:1 on paper, sand, yellow and every chip fill.
+     Pair with `outline: 3px solid transparent` so forced-colours mode still shows focus. */
   --focus-ring: 0 0 0 2px var(--paper), 0 0 0 5px var(--ink);
+  /* Range-slider track */
+  --track: color-mix(in srgb, var(--ink) 24%, transparent);
 
   /* ============================================================
      SPACING  (4pt base)
@@ -95,9 +136,13 @@
   --sp-12: 48px; --sp-16: 64px; --sp-20: 80px; --sp-24: 96px;
 
   /* ---- Radii (friendly, generous) ---- */
+  /* Page gutter (user decision 2026-11-07): content ~70% of the viewport on wide screens
+     (15% margin each side from ~1280px), never squeezed below 900px, 16-72px on phones/tablets.
+     Every full-width band, header row, page head and footer pads its content with it. */
+  --gutter: max(clamp(16px, 4vw, 72px), min(15vw, calc((100vw - 900px) / 2)));
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --r-pill: 999px;
 
-  /* ---- Elevation – warm, low, soft ---- */
+  /* ---- Elevation - warm, low, soft ---- */
   --shadow-sm: 0 1px 2px rgba(33,30,26,.10), 0 2px 6px rgba(33,30,26,.06);
   --shadow-md: 0 6px 18px rgba(33,30,26,.12), 0 1px 3px rgba(33,30,26,.08);
   --shadow-lg: 0 16px 40px rgba(33,30,26,.12), 0 3px 8px rgba(33,30,26,.06);
@@ -116,9 +161,12 @@
 /* ============================================================
    SEMANTIC ELEMENT STYLES
    Apply via element selectors or .edu-prose wrapper.
+   Element defaults are wrapped in :where(.edu) (zero specificity) so any
+   single class wins: <p class="edu-overline">, <p class="edu-small">,
+   <h1 class="app-title"> keep their own font/size instead of the element default.
    ============================================================ */
 
-.edu-display, .edu h1.display {
+.edu-display, :where(.edu) h1.display {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--display-font);
@@ -126,27 +174,27 @@
   letter-spacing: -0.025em;
   color: var(--ink);
 }
-.edu h1, .edu-h1 {
+:where(.edu) h1, .edu-h1 {
   font-family: var(--font-display);
   font-weight: 700; font-size: var(--h1);
   line-height: 1.06; letter-spacing: -0.02em; color: var(--ink);
 }
-.edu h2, .edu-h2 {
+:where(.edu) h2, .edu-h2 {
   font-family: var(--font-display);
-  font-weight: 600; font-size: var(--h2);
+  font-weight: 700; font-size: var(--h2);
   line-height: 1.12; letter-spacing: -0.015em; color: var(--ink);
 }
-.edu h3, .edu-h3 {
+:where(.edu) h3, .edu-h3 {
   font-family: var(--font-display);
-  font-weight: 600; font-size: var(--h3);
+  font-weight: 700; font-size: var(--h3);
   line-height: 1.2; letter-spacing: -0.01em; color: var(--ink);
 }
-.edu h4, .edu-h4 {
+:where(.edu) h4, .edu-h4 {
   font-family: var(--font-sans);
   font-weight: 700; font-size: var(--h4);
   line-height: 1.3; color: var(--ink);
 }
-.edu p, .edu-p, .edu-body {
+:where(.edu) p, .edu-p, .edu-body {
   font-family: var(--font-sans);
   font-weight: 400; font-size: var(--body);
   line-height: 1.6; color: var(--ink-2);
@@ -155,14 +203,14 @@
 .edu-small  { font-family: var(--font-sans); font-size: var(--body-sm); line-height: 1.5; color: var(--ink-2); }
 .edu-caption{ font-family: var(--font-sans); font-size: var(--caption); line-height: 1.45; color: var(--ink-3); }
 
-/* Overline – mono, tracked; functional labels only (never above page/section titles) */
+/* Overline - mono, tracked; functional labels only (never above page/section titles) */
 .edu-overline {
   font-family: var(--font-mono);
   font-weight: 500; font-size: var(--overline);
   letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--ink);
 }
-.edu code, .edu-mono {
+:where(.edu) code, .edu-mono {
   font-family: var(--font-mono);
   font-size: 0.92em; color: var(--ink);
   background: var(--paper-3); padding: 0.12em 0.4em; border-radius: var(--r-xs);
@@ -176,1227 +224,664 @@
 
 body.edu { background: var(--paper); color: var(--ink); font-family: var(--font-sans); }
 
-:root {
-  --app-body: var(--body-sm); --app-title: var(--h2); --app-heading: var(--body-lg);
-  --app-small: var(--caption); --app-align: left; --app-center: center;
-  --app-bg: var(--paper); --app-surface: var(--surface); --app-text: var(--ink);
-  --app-muted: var(--ink-2); --app-well: var(--paper-2); --app-line: var(--line-2);
-  --app-control: var(--yellow); --app-control-text: var(--yellow-ink);
-}
+
+/* ============================================================
+   App
+   ============================================================ */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 156px; }
-body { margin: 0; color: var(--app-text); background: var(--app-bg); font: var(--app-body)/1.6 var(--font-sans); text-align: var(--app-align); }
-button, input, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; }
-button:disabled { cursor: not-allowed; opacity: .42; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid transparent; outline-offset: 3px; box-shadow: var(--focus-ring); }
-button, .step { transition: background .18s, border-color .18s, opacity .18s; }
-.hidden, [hidden] { display: none !important; }
-.top-bar, .header-badge { display: none; }
-.page-wrap { padding: 0 28px 28px; width: 100%; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 25px 0 22px; }
-header h1 { margin: 0; font: 600 var(--app-title)/1.12 var(--font-display); letter-spacing: -.025em; }
-.header-sub { color: var(--app-muted); margin: 7px 0 0; }
-.app-logo { display: flex; gap: 1px; align-items: center; font: 700 var(--h4)/1 var(--font-display); }
-.app-logo img { width: 64px; height: 52px; object-fit: contain; }
-.app-toolbar { display: none; } /* Enter hint, status line and progress bar removed: they only took space. */
-.controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border: 1px solid var(--line-strong); padding: 8px 15px; background: var(--app-surface); color: var(--app-text); border-radius: var(--r-sm); font-weight: 600; }
-.btn svg { width: 16px; height: 16px; }
-.btn:hover:not(:disabled) { background: var(--app-well); }
-.btn-primary, .btn-success { background: var(--app-control); color: var(--app-control-text); border-color: var(--app-control); }
-.btn-primary:hover:not(:disabled), .btn-success:hover:not(:disabled) { background: var(--yellow-600); }
-.btn.is-playing { background: var(--app-text); color: var(--app-bg); }
-.kbd-hint { margin-left: auto; color: var(--app-muted); font-size: var(--app-small); }
-kbd { font: inherit; border: 1px solid var(--app-line); border-radius: 4px; padding: 2px 5px; }
-#statusMessage { margin-top: 10px; color: var(--app-muted); font-size: var(--app-small); display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 23px; }
-.progress-label { font: var(--app-small)/1.4 var(--font-mono); white-space: nowrap; color: var(--app-text); }
-.progress-track { height: 4px; background: var(--app-line); margin-top: 11px; border-radius: 4px; overflow: hidden; }
-.progress-track span { display: block; height: 100%; background: var(--yellow); width: 0; transition: width .2s; }
-.process-flow-container { display: grid; gap: 28px; margin-top: 25px; min-width: 0; }
-section { min-width: 0; }
-.phase-divider { display: flex; gap: 12px; align-items: center; padding: 0 0 15px; }
-.phase-tag { font: 500 var(--app-small)/1.4 var(--font-mono); color: var(--app-muted); }
-.phase-tag strong { color: var(--app-text); }
-.phase-line { height: 1px; flex: 1; background: var(--app-line); }
-.process-row { display: flex; flex-direction: column; gap: 12px; }
-.step-container { min-width: 0; position: relative; scroll-margin-top: 158px; }
-.step { border: 1px solid var(--app-line); border-radius: var(--r-lg); padding: 20px; background: var(--app-surface); min-height: 135px; }
-.step-active { border: 2px solid var(--yellow); padding: 19px; }
-.step-title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--app-text); font: 600 var(--app-heading)/1.3 var(--font-display); }
-.step-title .icon { width: 18px; height: 18px; flex-shrink: 0; }
-.step-number { font: 500 var(--app-small)/1 var(--font-mono); width: 27px; height: 27px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--app-well); flex-shrink: 0; }
-.step-active .step-number { background: var(--yellow); color: var(--yellow-ink); }
-.step-complete .step-number { background: var(--ink); color: var(--paper); }
-.step-note { margin: -3px 0 12px; font-size: var(--app-small); color: var(--app-muted); }
-.content-display { background: var(--app-well); border: 0; border-radius: var(--r-sm); padding: 12px; line-height: 1.65; overflow-wrap: anywhere; min-height: 60px; }
-.content-display:empty::before { content: attr(placeholder); color: var(--app-muted); }
-textarea.content-display { width: 100%; min-height: 190px; resize: vertical; display: block; border: 1px solid var(--line-strong); }
-textarea:disabled { opacity: 1; }
-.content-display.fade-out { opacity: 0; }
-#chunks, #vectorDb, #inputEmbedding, #combinedPrompt { font-family: var(--font-mono); font-size: var(--app-small); }
-#chunks, #vectorDb, #combinedPrompt { max-height: 280px; overflow-y: auto; }
-.chunk-item, .chunk-vector-item { padding: 10px 0; border-bottom: 1px solid var(--app-line); }
-.chunk-item:first-child, .chunk-vector-item:first-child { padding-top: 0; }
-.chunk-item:last-child, .chunk-vector-item:last-child { border-bottom: 0; }
-.chunk-text { display: block; font-family: var(--font-sans); }
-.vector-rep { display: inline-block; color: var(--app-muted); margin-top: 7px; }
-#userInput { width: 100%; padding: 13px 12px; background: var(--app-well); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); min-height: 48px; caret-color: transparent; }
-.suggestions-wrap { margin-top: 12px; }
-.suggestions-label { color: var(--ink); font: 500 12px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; margin: 0 0 8px; }
-.suggestion-button { padding: 9px 11px; min-height: 42px; border: 1px solid var(--line-strong); background: var(--app-surface); border-radius: var(--r-sm); margin: 0 5px 6px 0; }
-.suggestion-button:hover, .suggestion-button[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); }
-.error-text { color: var(--red-600); margin-top: 8px; }
-.arrow-connector { display: none; }
-.button-action-container { margin-top: 10px; display: flex; justify-content: flex-end; }
-.ranked-list { display: grid; gap: 9px; margin-top: 8px; }
-.ranked-item { display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; gap: 8px; align-items: start; background: var(--app-surface); padding: 12px; border: 1px solid var(--app-line); border-radius: var(--r-sm); }
-.ranked-item.winner { border: 2px solid var(--green-600); padding: 11px; }
-.ranked-rank, .ranked-score { font: var(--app-small)/1.6 var(--font-mono); }
-.ranked-score { font-weight: 500; }
-.ranked-text { font-size: var(--app-small); }
-.info-label { display: block; margin: 12px 0 6px; font: 500 12px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink); }
-.info-content { font: var(--app-small)/1.6 var(--font-mono); overflow-wrap: anywhere; }
-#combinedPrompt { white-space: pre-wrap; }
-#finalAnswer { font-size: var(--body); }
-footer { margin-top: 28px; border-top: 1px solid var(--app-line); padding-top: 16px; color: var(--app-muted); font-size: var(--app-small); display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
-footer p { margin: 0; }
-.step-rail { display: none; }
-.rail-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px; text-align: var(--app-align); border: 0; background: transparent; border-radius: var(--r-sm); color: var(--app-muted); }
-.rail-button[aria-current="step"] { background: var(--yellow); color: var(--yellow-ink); }
-.rail-button[data-inspected="true"]:not([aria-current="step"]) { outline: 1px solid var(--app-line); outline-offset: -1px; }
-.rail-phase { font: var(--app-small)/1.5 var(--font-mono); color: var(--app-muted); margin: 18px 10px 8px; }
-.return-active { width: 100%; margin-top: 18px; }
-.rail-caption { margin: 15px 10px; color: var(--app-muted); font-size: var(--app-small); }
-.focus-intro { display: none; }
-.focus-intro h2 { font: 500 var(--h2)/1.2 var(--font-display); margin: 0 0 8px; letter-spacing: -.02em; }
-.focus-intro p { color: var(--app-muted); margin: 0 0 22px; }
-body[data-variant="notebook"] .process-flow-container { display: block; counter-reset: chapter; }
-body[data-variant="notebook"] section { margin-bottom: 35px; }
-body[data-variant="notebook"] .phase-tag { font: 600 var(--h3)/1.4 var(--font-display); }
-body[data-variant="notebook"] .phase-divider { margin-bottom: 10px; }
-body[data-variant="notebook"] .step { display: grid; grid-template-columns: 200px minmax(0, 1fr); column-gap: 28px; border: 0; border-radius: 0; padding: 24px 0; border-bottom: 1px solid var(--app-line); background: transparent; }
-body[data-variant="notebook"] .step-title { grid-column: 1; align-self: start; flex-wrap: wrap; }
-body[data-variant="notebook"] .step-note { grid-column: 1; }
-body[data-variant="notebook"] .content-display, body[data-variant="notebook"] #userInput { grid-column: 2; grid-row: 1 / span 3; }
-body[data-variant="notebook"] #suggestionsContainer, body[data-variant="notebook"] #userInputError { grid-column: 2; }
-body[data-variant="notebook"] .step-active { background: var(--paper-2); padding: 24px 16px; border-radius: var(--r-md); border: 1px solid var(--yellow); }
-body[data-variant="notebook"] .content-display { max-height: 360px; }
-body[data-variant="presentation"] { --app-bg: var(--paper); --app-surface: var(--surface); --app-text: var(--ink); --app-muted: var(--ink-2); --app-well: var(--paper-2); --app-line: var(--line-2); --app-heading: var(--h3); --app-body: var(--body-lg); --app-small: var(--body-sm); }
-body[data-variant="presentation"] .app-main { display: flex; flex-direction: column; }
-body[data-variant="presentation"] .step-rail { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; margin: 22px 0 26px; }
-body[data-variant="presentation"] .rail-phase, body[data-variant="presentation"] .rail-caption { display: none; }
-body[data-variant="presentation"] .rail-button { flex-direction: column; justify-content: flex-start; text-align: var(--app-center); font-size: var(--caption); padding: 10px 5px; }
-body[data-variant="presentation"] .rail-button .step-number { background: transparent; color: inherit; }
-body[data-variant="presentation"] .return-active { grid-column: 1 / -1; width: fit-content; margin: 6px 0 0; }
-body[data-variant="presentation"] .process-flow-container { display: block; margin: 0; }
-body[data-variant="presentation"] .phase-divider, body[data-variant="presentation"] .step-container:not(.is-inspected) { display: none; }
-body[data-variant="presentation"] .step { border: 1px solid var(--app-line); padding: 30px; }
-body[data-variant="presentation"] .step-active { border-color: var(--yellow); }
-body[data-variant="presentation"] .step-title .step-number { color: var(--yellow-ink); background: var(--yellow); }
-body[data-variant="presentation"] textarea { min-height: 260px; }
-body[data-variant="presentation"] .content-display { max-height: 360px; font-size: var(--body-lg) !important; }
-body[data-variant="presentation"] #finalAnswer { font-size: var(--h3) !important; }
-@media (max-width: 768px) {
-  :root { --app-title: var(--h3); --app-heading: var(--body-lg); }
-  .page-wrap { padding: 0 16px 20px; }
-  header { gap: 10px; padding: 20px 0; } .app-logo { display: none; }
-  .kbd-hint { display: none; } .btn { padding: 8px 12px; }
-  #statusMessage { align-items: flex-start; gap: 10px; }
-  .rail-phase, .rail-caption { display: none; } .rail-button { flex-direction: column; text-align: var(--app-center); padding: 8px 4px; font-size: var(--overline); }
-  .return-active { grid-column: 1 / -1; }
-  body[data-variant="notebook"] .step { display: block; }
-  body[data-variant="presentation"] .step-rail { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  body[data-variant="presentation"] .step { padding: 20px; }
-  .ranked-item { grid-template-columns: 22px minmax(0, 1fr); } .ranked-score { grid-column: 2; }
+html { scroll-padding-top: calc(var(--chrome-h, 140px) + 12px); }
+body { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid transparent; outline-offset: 2px; box-shadow: var(--focus-ring); }
+.ic { width: 18px; height: 18px; flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- Top menu + step rail (sticky: it holds controls) ---- */
+.edu-header { position: sticky; top: 0; z-index: 50; background: var(--paper); border-bottom: 1px solid var(--line-2); }
+.edu-header-inner { padding: 8px var(--gutter); display: flex; align-items: center; gap: 12px; }
+.brand { display: flex; align-items: center; margin-right: auto; text-decoration: none; color: var(--ink); }
+.edu-logo { width: 64px; height: 64px; display: block; margin-right: -6px; }
+.edu-wordmark { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em; color: var(--ink); }
+.btn-ghost { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: var(--r-pill); padding: 9px 16px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 600; font-size: 15px; transition: background-color .15s; }
+.btn-ghost:hover { background: var(--paper-2); }
+.btn-ghost[disabled] { color: var(--ink-3); cursor: not-allowed; background: var(--surface); }
+.edu-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--paper-2); border-radius: var(--r-pill); }
+.edu-seg button { border: none; background: transparent; padding: 7px 14px; border-radius: var(--r-pill);
+  font-family: var(--font-sans); font-weight: 600; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.edu-seg button[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); }
+
+.rail { padding: 0 var(--gutter) 10px; }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.rail button { width: 100%; height: 100%; display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: var(--r-pill);
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-3); font-size: 13px; font-weight: 500;
+  line-height: 1.2; text-align: left; cursor: default; }
+.rail button .ic { width: 15px; height: 15px; }
+.rail li.done button { background: var(--paper-2); border-color: var(--paper-2); color: var(--ink); cursor: pointer; }
+.rail li.done button:hover { background: var(--paper-3); border-color: var(--paper-3); }
+.rail li.now button { background: var(--yellow); border-color: var(--yellow); color: var(--yellow-ink); font-weight: 700; cursor: pointer; }
+.rail li.phase-b { }
+.rail-mobile { display: none; }
+
+/* ---- Page head ---- */
+.page-head { padding: 40px var(--gutter) 44px; }
+.app-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.3rem, 5vw, 3.3rem);
+  letter-spacing: -.025em; line-height: 1.05; color: var(--ink); margin: 0 0 14px; }
+.edu-lead { font-size: 1.15rem; line-height: 1.6; color: var(--ink-2); margin: 0; }
+
+/* ---- Section bands ---- */
+.sec { padding: 48px 0 56px; border-top: 1px solid var(--line); }
+.sec:nth-of-type(odd) { background: var(--paper-2); }
+.sec > .wrap { padding: 0 var(--gutter); }
+.sec-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.sec-head h2 { margin: 0; }
+.sec-head::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+
+/* ---- Tones & badges ---- */
+.tone-grape  { background: var(--grape-soft);  color: var(--grape-ink); }
+.tone-blue   { background: var(--blue-soft);   color: var(--blue-ink); }
+.tone-yellow { background: var(--yellow-soft); color: var(--yellow-ink); }
+.tone-green  { background: var(--green-soft);  color: var(--green-ink); }
+.tone-ink    { background: var(--ink);         color: var(--paper); }
+.tone-stone  { background: var(--paper-3);     color: var(--ink); }
+.badge { flex: none; width: 34px; height: 34px; border-radius: var(--r-sm); display: inline-grid; place-items: center; }
+.badge-lg { width: 46px; height: 46px; border-radius: var(--r-md); }
+.badge-lg .ic { width: 24px; height: 24px; }
+
+.group-hero { border-radius: var(--r-xl); padding: 22px 28px; display: grid; grid-template-columns: 1fr 200px; gap: 28px; align-items: center; margin-bottom: 20px; }
+.group-hero .edu-overline { color: inherit; margin: 0 0 6px; }
+.group-hero .lead { margin: 0; font-size: var(--body-lg); line-height: 1.5; }
+.gh-num { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; }
+.gh-bar { height: 10px; margin-top: 8px; border-radius: var(--r-pill); background: color-mix(in srgb, currentColor 24%, transparent); overflow: hidden; }
+.gh-bar span { display: block; height: 100%; background: currentColor; border-radius: var(--r-pill); transition: width .3s; }
+
+/* ---- Step cards ---- */
+.steps { display: grid; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: clip; scroll-margin-top: calc(var(--chrome-h, 140px) + 12px); }
+.card.now { border-color: var(--ink); box-shadow: var(--shadow-md); }
+.card-head { padding: 12px 20px; background: var(--paper-2); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card:not(.collapsed) .card-head { border-bottom: 1px solid var(--line); }
+.tile-h { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tile-h h3 { margin: 0; font-size: 21px; }
+.card.later .tile-h h3 { color: var(--ink-3); }
+.card-body { padding: 18px 20px 20px; display: grid; gap: 14px; }
+.card-body > * { margin: 0; min-width: 0; }
+.why { font-size: var(--body); color: var(--ink-2); line-height: 1.55; max-width: 62rem; }
+.card-foot { padding: 12px 20px; border-top: 1px dashed var(--line-2); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card-foot .spacer { flex: 1; }
+.card.now .card-foot { position: sticky; bottom: 0; z-index: 2; background: var(--surface); }
+.collapsed .card-body, .collapsed .card-foot { display: none; }
+.summary { font-size: var(--body-sm); color: var(--ink-2); margin: 0 0 0 auto; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+.chip { font-family: var(--font-mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em;
+  padding: 4px 10px; border-radius: var(--r-pill); white-space: nowrap; flex: none; display: inline-flex; align-items: center; gap: 4px; }
+.chip .ic { width: 13px; height: 13px; }
+
+.edu-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 16px;
+  background: var(--yellow); color: var(--on-primary); border: none; border-radius: var(--r-pill); padding: 11px 22px;
+  box-shadow: var(--shadow-primary); cursor: pointer; transition: transform .12s cubic-bezier(.32,.72,.32,1), background-color .15s; }
+.edu-btn:hover { background: var(--yellow-600); }
+.edu-btn:active { transform: scale(.96); }
+.edu-btn[disabled] { background: var(--paper-3); color: var(--ink-2); box-shadow: none; cursor: not-allowed; transform: none; }
+kbd { font-family: var(--font-mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-xs); background: var(--surface); color: var(--ink); }
+.hint { font-size: var(--caption); color: var(--ink-3); }
+
+/* ---- Step content ---- */
+textarea.doc { width: 100%; min-height: 190px; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  font: 15px/1.6 var(--font-sans); color: var(--ink); background: var(--surface); resize: vertical; }
+textarea.doc[readonly] { background: var(--paper-2); border-color: var(--line-2); color: var(--ink-2); }
+.field-label { font-family: var(--font-mono); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; color: var(--ink); }
+.field { display: grid; gap: 8px; }
+
+.chunks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr)); gap: 10px; }
+.chunk { border: 1px solid var(--line-2); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+.chunk-h { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: var(--paper-3); }
+.chunk-h b { font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
+.chunk p { margin: 0; padding: 10px 12px 12px; font-size: var(--body-sm); line-height: 1.5; color: var(--ink-2); }
+.fid { font-family: var(--font-mono); font-weight: 500; font-size: 13px; color: var(--ink); background: var(--paper-3); border-radius: var(--r-xs); padding: 2px 7px; white-space: nowrap; }
+
+/* vector = 12 bars (CSS shapes, single series) */
+.vec { display: inline-grid; grid-template-columns: repeat(12, 9px); gap: 3px; align-items: end; height: 34px; padding: 3px 6px;
+  background: var(--paper-2); border-radius: var(--r-xs); vertical-align: middle; }
+.vec i { display: block; height: max(2px, var(--h)); background: var(--ink); border-radius: 2px 2px 0 0; }
+td .vec { background: transparent; }
+.vec.big { grid-template-columns: repeat(12, 22px); gap: 6px; height: 90px; padding: 6px 10px; }
+.vec.q i { background: var(--blue-600); }
+.vec-nums { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); word-break: break-word; }
+
+.table-card { border: 1px solid var(--line-2); border-radius: var(--r-md); overflow: hidden; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; padding: 10px 14px; background: var(--paper-3); border-bottom: 1px solid var(--line-2);
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--ink); white-space: nowrap; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--ink-2); vertical-align: middle; }
+tbody tr:nth-child(even) td { background: var(--paper-2); }
+tbody tr:last-child td { border-bottom: none; }
+td.lbl { color: var(--ink); }
+td.lbl span:not(.fid) { display: block; max-width: 34rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--body-sm); color: var(--ink-2); margin-top: 2px; }
+tr.qrow td { background: var(--surface); border-bottom: 1px solid var(--line-2); }
+tr.qrow td.lbl { font-weight: 600; }
+.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); color: var(--ink); white-space: nowrap; }
+.meter { display: inline-block; width: 80px; height: 8px; border-radius: var(--r-pill); background: var(--track); overflow: hidden; vertical-align: middle; margin-left: 8px; }
+.meter i { display: block; height: 100%; width: var(--w); background: var(--ink); }
+tr.picked td { font-weight: 600; }
+
+details.more { background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-md); }
+details.more > summary { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; padding: 8px 14px; font-family: var(--font-display); font-weight: 600; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::after { content: "+"; font-family: var(--font-mono); }
+details.more[open] > summary { border-bottom: 1px dashed var(--line-2); }
+details.more[open] > summary::after { content: "−"; }
+details.more > div { padding: 10px 14px; display: grid; gap: 6px; }
+
+.questions { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt { padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--ink);
+  cursor: pointer; font-weight: 500; font-size: 15px; transition: background-color .15s; }
+.opt:hover { background: var(--paper-2); }
+.opt[aria-pressed="true"] { background: var(--blue-soft); color: var(--blue-ink); border-color: var(--blue-soft); }
+.opt[disabled] { cursor: not-allowed; }
+.opt[disabled]:not([aria-pressed="true"]) { color: var(--ink-3); background: var(--surface); }
+.question { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--ink); background: var(--paper-2); border-radius: var(--r-md); padding: 12px 16px; }
+
+.prompt { border: 1px solid var(--line-2); border-radius: var(--r-md); overflow: hidden; }
+.prompt section { padding: 10px 14px 12px; border-bottom: 1px solid var(--line); }
+.prompt section:last-child { border-bottom: none; }
+.prompt .edu-overline { display: block; margin-bottom: 6px; }
+.prompt p { margin: 0 0 6px; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.prompt p:last-child { margin-bottom: 0; }
+.prompt .sys { background: var(--paper-2); }
+.prompt .empty { color: var(--ink-3); }
+
+.chat { display: grid; gap: 10px; }
+.chat .bubble { margin: 0; }
+.bubble { border-radius: var(--r-lg); padding: 14px 18px; max-width: 52rem; font-size: 18px; line-height: 1.5; }
+.bubble.user { background: var(--paper-3); color: var(--ink); justify-self: end; border-bottom-right-radius: var(--r-xs); }
+.bubble.bot { background: var(--blue-soft); color: var(--blue-ink); border-bottom-left-radius: var(--r-xs); }
+.bubble .edu-overline { display: block; color: inherit; margin-bottom: 4px; font-size: 11px; }
+.sources { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.callout { border-radius: var(--r-md); padding: 12px 16px; font-size: var(--body); line-height: 1.5; }
+.callout.tone-yellow { color: var(--yellow-ink); }
+
+footer.foot { padding: 22px var(--gutter) 28px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+footer.foot p { margin: 0; font-size: var(--caption); color: var(--ink-3); }
+
+/* ---- Presentation: same layout, larger type, one open card ---- */
+body.present .card-body { font-size: 1.12rem; }
+body.present .why { font-size: 1.2rem; }
+body.present .tile-h h3 { font-size: 26px; }
+body.present .chunk p { font-size: 1rem; }
+body.present .bubble { font-size: 24px; }
+body.present .prompt p { font-size: 16px; }
+body.present .group-hero { display: none; }
+
+@media (max-width: 1100px) {
+  .rail ol { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-@media (prefers-reduced-motion: reduce) { *, html { transition: none !important; scroll-behavior: auto !important; } }
-:root { --chrome-height: 74px; --app-gutter: clamp(18px, 3vw, 48px); --chrome-label: var(--body-sm); }
-html { scroll-padding-top: calc(var(--chrome-height) + 165px); }
-.page-wrap { padding: 0 var(--app-gutter) 28px; }
-.appbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; min-height: 74px; padding: 10px var(--app-gutter); background: var(--app-bg); border-bottom: 1px solid var(--app-line); }
-.appbar .app-logo { display: flex; font-size: var(--h3); }
-.appbar .app-logo img { height: 50px; }
-.appbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.view-switch { display: flex; gap: 4px; padding: 4px; border: 0; background: var(--app-well); border-radius: var(--r-pill); }
-.view-switch button { border: 0; border-radius: var(--r-pill); background: transparent; color: var(--app-text); padding: 10px 16px; min-height: 42px; white-space: nowrap; font-size: var(--chrome-label); font-weight: 600; }
-.view-switch button[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); }
-#app-language { min-height: 42px; font: 500 var(--caption)/1.5 var(--font-mono); }
-.app-toolbar { top: var(--chrome-height); }
-.step-container { scroll-margin-top: calc(var(--chrome-height) + 155px); }
-header { padding: 28px 0; }
-header h1 { font-size: var(--h1); }
-.header-sub { font-size: var(--body); }
-.appbar-hint { color: var(--app-muted); font: var(--caption)/1.4 var(--font-mono); }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.verification-panel { display: none; }
-body[data-variant="notebook"] .step { grid-template-columns: clamp(220px, 24vw, 340px) minmax(0, 1fr); column-gap: 32px; }
-body[data-variant="notebook"] .step-title { flex-wrap: nowrap; align-items: flex-start; }
-body[data-variant="notebook"] .step-title .view-title { flex: 1; }
-body[data-variant="notebook"] .step-title .icon { margin-top: 3px; }
-body[data-variant="notebook"] .step-note { padding-left: 0; }
-body[data-variant="notebook"] textarea { min-height: 225px; }
-body[data-variant="presentation"] .step-rail { margin-top: 20px; }
-#startButton, #autoButton, #resetButton, body[data-variant="presentation"] .next-button-container { display: none; }
-body[data-variant="presentation"] .rail-button[data-reachable="true"] { cursor: pointer; }
-.appbar-reset { display: inline-flex; }
-body[data-variant="presentation"] .rail-button { min-height: 88px; font-size: var(--body-sm); }
-body[data-variant="presentation"] .step { padding: 28px 32px; }
-body[data-variant="presentation"] .content-display { max-height: none; }
-body[data-variant="presentation"] #chunks, body[data-variant="presentation"] #vectorDb, body[data-variant="presentation"] #combinedPrompt { max-height: 48vh; min-height: 180px; }
-body[data-variant="presentation"] textarea { min-height: 250px; }
 @media (max-width: 768px) {
-  :root { --chrome-height: 130px; --chrome-label: var(--caption); }
-  .appbar { gap: 8px; padding: 8px 16px 12px; }
-  .appbar .app-logo { font-size: var(--h4); }
-  .appbar .app-logo img { width: 50px; height: 38px; }
-  .appbar-actions { width: 100%; gap: 8px; }
-  .view-switch { flex: 1; }
-  .view-switch button { padding: 9px 10px; flex: 1; }
-  #app-language { padding: 8px 10px; }
-  .appbar-hint { display: none; }
-  header h1 { font-size: var(--h2); }
-  .header-sub { font-size: var(--body-sm); }
-  .controls .btn { font-size: var(--body-sm); }
-  body[data-variant="notebook"] .step { display: block; }
-  body[data-variant="presentation"] .step { padding: 18px; }
-  body[data-variant="presentation"] .rail-button { min-height: 88px; font-size: var(--overline); }
+  .edu-logo { width: 44px; height: 44px; }
+  .edu-wordmark { font-size: 19px; }
+  .edu-header-inner { gap: 8px; padding-block: 4px; }
+  .mode-seg { display: none; }
+  .btn-ghost .lbl { display: none; }
+  .btn-ghost { padding: 9px 11px; }
+  .rail ol { display: none; }
+  .rail-mobile { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .rail-mobile .gh-bar { flex: 1; margin: 0; color: var(--ink); }
+  .rail-mobile .gh-bar span { background: var(--yellow); }
+  .page-head { padding: 26px var(--gutter) 30px; }
+  .sec { padding: 32px 0 40px; }
+  .sec-head h2 { font-size: 26px; }
+  .group-hero { grid-template-columns: 1fr; padding: 18px 20px; gap: 12px; }
+  .card-head, .card-body, .card-foot { padding-inline: 14px; }
+  .summary { display: none; }
+  .tile-h h3 { font-size: 18px; }
+  .vec.big { grid-template-columns: repeat(12, 1fr); gap: 4px; width: 100%; }
+  td.lbl span:not(.fid) { max-width: 9rem; }
+  .vcol, .meter { display: none; }
+  th, td { padding: 8px 6px; }
+  th { font-size: 10px; letter-spacing: .03em; }
+  td.lbl span:not(.fid) { max-width: 7rem; }
+  td .chip { font-size: 10px; padding: 3px 7px; letter-spacing: .03em; }
+  table { font-size: 14px; }
+  .bubble { font-size: 16px; }
+  .card-foot .edu-btn { flex: 1; justify-content: center; white-space: nowrap; padding-inline: 16px; font-size: 15px; }
+  .card-foot { flex-wrap: nowrap; }
+  .card-foot .hint { display: none; }
 }
-
-/* ─── Structure (edustyl v2): top bar, page head, section bands ─── */
-:root { --wrap-pad: max(var(--app-gutter), calc((100% - 1040px) / 2)); }
-.appbar { border-bottom-color: var(--line-2); }
-body[data-variant="notebook"] .appbar { padding-inline: var(--wrap-pad); }
-.appbar .app-logo { font: 700 22px/1 var(--font-display); letter-spacing: -.02em; color: var(--ink); }
-.appbar .app-logo img { width: 64px; height: 64px; margin-right: -6px; }
-header { display: block; padding: 44px 0 36px; text-align: left; }
-header > div { width: 100%; }
-header h1 { margin: 0 0 14px; font: 800 clamp(2.3rem, 5vw, 3.3rem)/1.05 var(--font-display); letter-spacing: -.025em; color: var(--ink); }
-.header-sub { margin: 0; font-size: 1.15rem; line-height: 1.6; color: var(--ink-2); }
-h2.phase-tag { margin: 0; }
-body[data-variant="presentation"] header { border-bottom: 1px solid var(--line-2); }
-/* Notebook: the two phases are full-bleed bands, stone / white, each with a ruled section head */
-body[data-variant="notebook"] .page-wrap { padding: 0; }
-body[data-variant="notebook"] header { padding: 44px var(--wrap-pad) 52px; }
-body[data-variant="notebook"] .process-flow-container { margin: 0; }
-body[data-variant="notebook"] section { margin: 0; padding: 52px var(--wrap-pad) 60px; border-top: 1px solid var(--line); }
-body[data-variant="notebook"] section:nth-of-type(odd) { background: var(--paper-2); --app-well: var(--surface); }
-body[data-variant="notebook"] section:nth-of-type(odd) .content-display:not(textarea) { border: 1px solid var(--line-2); }
-body[data-variant="notebook"] section:nth-of-type(odd) .step-active { background: var(--surface); }
-body[data-variant="notebook"] .phase-divider { gap: 14px; padding: 0; margin-bottom: 26px; }
-body[data-variant="notebook"] .phase-tag { font: 700 var(--h2)/1.12 var(--font-display); letter-spacing: -.015em; color: var(--ink); }
-body[data-variant="notebook"] .phase-line { background: var(--line-2); }
-body[data-variant="notebook"] .process-row > .step-container:last-child .step { border-bottom: 0; padding-bottom: 0; }
-body[data-variant="notebook"] footer { margin: 0; padding: 16px var(--wrap-pad) 28px; border-top-color: var(--line); }
-@media (max-width: 768px) {
-  .appbar .app-logo img { width: 48px; height: 48px; }
-  header { padding: 28px 0 32px; }
-  body[data-variant="notebook"] header { padding: 28px var(--wrap-pad) 32px; }
-  body[data-variant="notebook"] section { padding: 36px var(--wrap-pad) 44px; }
-  body[data-variant="notebook"] .phase-tag { font-size: var(--h3); }
-}
-</style></head><body data-variant="notebook" data-language="pl">
-
-    <div class="top-bar"></div>
-
-    <div class="page-wrap">
-
-        <header>
-            <div class="header-badge">
-                <i data-lucide="zap"></i> Interaktywna Demonstracja
-            </div>
-            <h1>Symulator <span>RAG</span></h1>
-            <p class="header-sub">Wizualizacja procesu Retrieval-Augmented Generation krok po kroku.</p>
-        </header>
-
-        <div class="controls">
-            <button id="startButton" class="btn btn-primary">
-                <i data-lucide="play"></i> Uruchom
-            </button>
-            <button id="autoButton" class="btn">
-                <i data-lucide="fast-forward"></i> <span class="auto-label">Auto</span>
-            </button>
-            <button id="resetButton" class="btn">
-                <i data-lucide="rotate-cw"></i> Resetuj
-            </button>
-            <span class="kbd-hint"><kbd>Enter</kbd> = Dalej</span>
-        </div>
-
-        <div id="statusMessage" aria-live="polite">
-            <span class="status-text">Kliknij „Uruchom", aby rozpocząć.</span>
-        </div>
-
-        <div class="process-flow-container">
-
-            <section aria-labelledby="phase1-title">
-                <div class="phase-divider">
-                    <h2 class="phase-tag">Przygotowanie wiedzy</h2>
-                    <span class="phase-line"></span>
-                </div>
-                <div class="process-row">
-                    <div class="step-container">
-                        <div id="step1" class="step">
-                            <h3 class="step-title"><i data-lucide="file-text" class="icon"></i>Dokument Wiedzy</h3>
-                            <textarea id="knowledgeDoc" class="content-display" placeholder="Wpisz lub użyj domyślnego tekstu wiedzy."></textarea>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="1">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
-
-                    <div class="step-container">
-                        <div id="step2" class="step">
-                            <h3 class="step-title"><i data-lucide="scissors" class="icon"></i>Podział na Fragmenty</h3>
-                            <div id="chunks" class="content-display text-left" placeholder="Fragmenty tekstu pojawią się tutaj..."></div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="2">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
-
-                    <div class="step-container">
-                        <div id="step3" class="step">
-                            <h3 class="step-title"><i data-lucide="database" class="icon"></i>Baza Wektorowa</h3>
-                            <div id="vectorDb" class="content-display text-left" placeholder="Embeddingsy fragmentów przechowywane tutaj..."></div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="3">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section aria-labelledby="phase2-title">
-                <div class="phase-divider">
-                    <h2 class="phase-tag">Zapytanie i generowanie</h2>
-                    <span class="phase-line"></span>
-                </div>
-                <div class="process-row">
-                    <div class="step-container">
-                        <div id="step4" class="step">
-                            <h3 class="step-title"><i data-lucide="terminal" class="icon"></i>Zapytanie Użytkownika</h3>
-                            <input type="text" id="userInput" readonly placeholder="Wybierz sugestię poniżej">
-                            <div id="userInputError" class="error-text hidden">Proszę wybrać sugestię.</div>
-                            <div id="suggestionsContainer" class="suggestions-wrap hidden">
-                                <p class="suggestions-label">Sugestie</p>
-                                <button class="suggestion-button" data-query="Która planeta jest najbliżej Słońca?">Najbliższa planeta?</button>
-                                <button class="suggestion-button" data-query="Opowiedz mi o pierścieniach Saturna.">Pierścienie Saturna?</button>
-                                <button class="suggestion-button" data-query="Jakie są galileuszowe księżyce Jowisza?">Księżyce Jowisza?</button>
-                                <button class="suggestion-button" data-query="Jakie jest największe zwierzę na Ziemi?">Największe zwierzę?</button>
-                            </div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="4">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
-
-                    <div class="step-container">
-                        <div id="step5" class="step">
-                            <h3 class="step-title"><i data-lucide="binary" class="icon"></i>Osadzanie Zapytania</h3>
-                            <div id="inputEmbedding" class="content-display" placeholder="Embedding zapytania pojawi się tutaj..."></div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="5">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
-
-                    <div class="step-container">
-                        <div id="step67" class="step">
-                            <h3 class="step-title"><i data-lucide="search" class="icon"></i>Pobieranie Fragmentów</h3>
-                            <div id="retrievedKnowledge" class="content-display" placeholder="Odpowiednia wiedza pojawi się tutaj..."></div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="67">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
-
-                    <div class="step-container">
-                        <div id="step8" class="step">
-                            <h3 class="step-title"><i data-lucide="code-2" class="icon"></i>Rozszerzenie Promptu</h3>
-                            <div id="combinedPrompt" class="content-display text-left" placeholder="Złączony prompt dla LLM pojawi się tutaj..."></div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="8">
-                            <button class="btn btn-primary next-step-button" disabled>
-                                <i data-lucide="arrow-down"></i> Dalej
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="arrow-connector vertical"><i data-lucide="chevron-down"></i></div>
-
-                    <div class="step-container">
-                        <div id="step9" class="step">
-                            <h3 class="step-title"><i data-lucide="sparkles" class="icon"></i>Generowanie Odpowiedzi</h3>
-                            <div id="finalAnswer" class="content-display" placeholder="Odpowiedź pojawi się tutaj..."></div>
-                        </div>
-                        <div class="button-action-container next-button-container hidden" data-step="9"></div>
-                    </div>
-                </div>
-
-                <div id="newQueryButtonContainer" class="button-action-container hidden" style="margin-top: 0.75rem;">
-                    <button id="newQueryButton" class="btn btn-success">
-                        <i data-lucide="refresh-cw"></i> Nowe Zapytanie
-                    </button>
-                </div>
-            </section>
-
-        </div>
-
-        <footer>
-            <p>Symulator RAG – Przykład Ilustracyjny</p>
-        </footer>
-
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body class="edu">
+<header class="edu-header" id="chrome">
+  <div class="edu-header-inner">
+    <a class="brand" href="./" aria-label="edulab"><img class="edu-logo" alt="" src="data:image/png;base64,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"><span class="edu-wordmark">edulab</span></a>
+    <button class="btn-ghost" id="reset" type="button" aria-keyshortcuts="R"><i data-lucide="rotate-ccw" class="ic" aria-hidden="true"></i><span class="lbl" data-t="reset"></span></button>
+    <div class="edu-seg mode-seg" role="group" id="modeSeg" aria-keyshortcuts="Alt+P">
+      <button type="button" data-mode="notebook" data-t="notebook"></button>
+      <button type="button" data-mode="present" data-t="present"></button>
     </div>
+    <div class="edu-seg" role="group" id="langSeg" aria-label="Język / Language">
+      <button type="button" data-lang="pl" lang="pl">PL</button>
+      <button type="button" data-lang="en" lang="en">EN</button>
+    </div>
+  </div>
+  <nav class="rail" id="rail" aria-label="">
+    <ol></ol>
+    <div class="rail-mobile"><span id="railText"></span><div class="gh-bar"><span id="railBar"></span></div></div>
+    <p class="sr-only" id="live" aria-live="polite"></p>
+  </nav>
+</header>
 
-    <script>window.lucide = { createIcons() {
- const paths = {
- 'play':'M8 5l11 7-11 7z', 'fast-forward':'M3 5l8 7-8 7z M13 5l8 7-8 7z',
- 'rotate-cw':'M20 7v5h-5 M20 12a8 8 0 1 0-2 5', 'refresh-cw':'M20 7v5h-5 M4 17v-5h5 M20 12a8 8 0 0 0-14-5 M4 12a8 8 0 0 0 14 5',
- 'arrow-down':'M12 4v16 M5 13l7 7 7-7', 'file-text':'M14 3H5v18h14V8z M14 3v5h5 M8 12h8 M8 16h6',
- 'scissors':'M7 7l13 13 M7 17L20 4 M3 3h5v5H3z M3 16h5v5H3z', 'database':'M4 6c0-4 16-4 16 0s-16 4-16 0 M4 6v12c0 4 16 4 16 0V6 M4 12c0 4 16 4 16 0',
- 'terminal':'M5 7l5 5-5 5 M13 17h6', 'binary':'M5 4h4v6H5z M15 4h2v6 M5 14h2v6 M15 14h4v6h-4z',
- 'search':'M15 15l6 6 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0', 'code-2':'M8 6l-6 6 6 6 M16 6l6 6-6 6 M14 3l-4 18',
- 'sparkles':'M12 3l2 7 7 2-7 2-2 7-2-7-7-2 7-2z', 'chevron-down':'M5 9l7 7 7-7', 'zap':'M13 2L3 14h8l-1 8L21 10h-8z'
- };
- document.querySelectorAll('[data-lucide]').forEach(node => {
- const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
- const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
- svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.6'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('class', node.className); path.setAttribute('d', paths[node.dataset.lucide] || paths['file-text']); svg.append(path); node.replaceWith(svg);
- });
-}};
-window.VIEW_LOGO="data:image/png;base64,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";</script><script>
-        const startButton = document.getElementById('startButton');
-        const autoButton = document.getElementById('autoButton');
-        const autoLabel = autoButton.querySelector('.auto-label');
-        const nextButtons = document.querySelectorAll('.next-step-button');
-        const allNextButtonContainers = document.querySelectorAll('.next-button-container');
-        const resetButton = document.getElementById('resetButton');
-        const newQueryButton = document.getElementById('newQueryButton');
-        const newQueryButtonContainer = document.getElementById('newQueryButtonContainer');
-        const statusMessage = document.getElementById('statusMessage');
-        const knowledgeDocInput = document.getElementById('knowledgeDoc');
-        const userInput = document.getElementById('userInput');
-        const userInputError = document.getElementById('userInputError');
-        const suggestionsContainer = document.getElementById('suggestionsContainer');
-        const suggestionButtons = document.querySelectorAll('.suggestion-button');
-        const arrowConnectors = document.querySelectorAll('.arrow-connector');
+<main>
+  <div class="page-head">
+    <h1 class="app-title" data-t="title"></h1>
+    <p class="edu-lead" data-t="lead"></p>
+  </div>
+  <section class="sec" id="secA">
+    <div class="wrap">
+      <div class="sec-head"><span class="badge badge-lg tone-grape"><i data-lucide="library" class="ic" aria-hidden="true"></i></span><h2 data-t="phaseA"></h2></div>
+      <div class="group-hero tone-grape edu-block">
+        <div><p class="edu-overline" data-t="phaseAMeta"></p><p class="lead" data-t="phaseALead"></p></div>
+        <div><span class="gh-num" id="numA"></span><div class="gh-bar"><span id="barA"></span></div></div>
+      </div>
+      <div class="steps" id="stepsA"></div>
+    </div>
+  </section>
+  <section class="sec" id="secB">
+    <div class="wrap">
+      <div class="sec-head"><span class="badge badge-lg tone-blue"><i data-lucide="messages-square" class="ic" aria-hidden="true"></i></span><h2 data-t="phaseB"></h2></div>
+      <div class="group-hero tone-blue edu-block">
+        <div><p class="edu-overline" data-t="phaseBMeta"></p><p class="lead" data-t="phaseBLead"></p></div>
+        <div><span class="gh-num" id="numB"></span><div class="gh-bar"><span id="barB"></span></div></div>
+      </div>
+      <div class="steps" id="stepsB"></div>
+    </div>
+  </section>
+</main>
+<footer class="foot"><p data-t="footer"></p><p data-t="keys"></p></footer>
 
-        const getStepElement = (stepNum) => {
-            if (stepNum === 6 || stepNum === 7) return document.getElementById('step67');
-            return document.getElementById(`step${stepNum}`);
-        };
+<script>
+'use strict';
+// ─── Content ───
+const DOCS = {
+  pl: `Nasz Układ Słoneczny to rozległe i fascynujące miejsce, skupione wokół Słońca – gwiazdy typu G (żółty karzeł), która zawiera 99,86% całkowitej masy układu. Grawitacja Słońca utrzymuje razem wszystko – od największych planet po najmniejsze odłamki skalne. Oficjalnie wyróżnia się osiem planet. Licząc od Słońca, są to Merkury, Wenus, Ziemia i Mars – wewnętrzne, skaliste (terrestryczne) planety. Za Marsem leży główny pas asteroid – obszar zamieszkały przez miliony skalistych ciał, pozostałości z wczesnego formowania się Układu Słonecznego. Ceres, największy obiekt w pasie asteroid, sklasyfikowany jest jako planeta karłowata. Za pasem asteroid znajdują się planety zewnętrzne: Jowisz, Saturn, Uran i Neptun. Są to gazowe olbrzymy (Jowisz, Saturn) i lodowe olbrzymy (Uran, Neptun) – znacznie większe od planet terrestrycznych, zbudowane głównie z gazów i lodu. Jowisz jest zdecydowanie największą planetą, posiada silne pole magnetyczne i liczne księżyce, w tym cztery duże księżyce galileuszowe: Io, Europę, Ganimedesa i Kallisto. Saturn słynie z imponującego i złożonego systemu pierścieni, zbudowanego głównie z cząsteczek lodu z domieszką odłamków skalnych i pyłu. Ma też wiele księżyców, w tym duży Tytan z gęstą atmosferą. Uran i Neptun, lodowe olbrzymy, są chłodniejsze i mają atmosfery zawierające metan, który nadaje im niebieskawą barwę. Uran jest wyjątkowy, ponieważ obraca się na boku – prawdopodobnie wskutek ogromnego zderzenia we wczesnej historii układu. Neptun to najbardziej wietrzna planeta – w jego atmosferze szaleją naddźwiękowe burze. Za Neptunem leży Pas Kuipera – kolejny dyskowy obszar wypełniony lodowymi ciałami, w tym planetami karłowatymi: Plutonem, Eris, Makemake i Haumea. Jeszcze dalej rozciąga się teoretyczny Obłok Oorta – ogromna sferyczna powłoka lodowych obiektów, uważana za źródło długookresowych komet. Cały Układ Słoneczny jest w ciągłym ruchu – planety orbitują wokół Słońca, księżyce wokół swoich planet, a wszystko to jest częścią galaktyki Drogi Mlecznej.`,
+  en: `Our Solar System is a vast and fascinating place, centred on the Sun – a G-type star (a yellow dwarf) that holds 99.86% of the system's total mass. The Sun's gravity holds everything together – from the largest planets to the smallest rocky fragments. Officially, there are eight planets. Counting from the Sun, they are Mercury, Venus, Earth and Mars – the inner, rocky (terrestrial) planets. Beyond Mars lies the main asteroid belt – a region home to millions of rocky bodies, leftovers from the early formation of the Solar System. Ceres, the largest object in the asteroid belt, is classified as a dwarf planet. Beyond the asteroid belt are the outer planets: Jupiter, Saturn, Uranus and Neptune. They are gas giants (Jupiter, Saturn) and ice giants (Uranus, Neptune) – much larger than the terrestrial planets and made mostly of gas and ice. Jupiter is by far the largest planet, with a strong magnetic field and many moons, including four large Galilean moons: Io, Europa, Ganymede and Callisto. Saturn is famous for its impressive and complex ring system, made mostly of ice particles mixed with rocky debris and dust. It also has many moons, including the large Titan with its thick atmosphere. Uranus and Neptune, the ice giants, are colder and have atmospheres containing methane, which gives them a bluish colour. Uranus is unusual because it rotates on its side – probably the result of a huge collision early in the system's history. Neptune is the windiest planet – supersonic storms rage in its atmosphere. Beyond Neptune lies the Kuiper Belt – another disc-shaped region filled with icy bodies, including the dwarf planets Pluto, Eris, Makemake and Haumea. Further still lies the theoretical Oort Cloud – a huge spherical shell of icy objects, thought to be the source of long-period comets. The whole Solar System is in constant motion – planets orbit the Sun, moons orbit their planets, and all of it is part of the Milky Way galaxy.`,
+};
+const QUESTIONS = [
+  { id: 'closest', label: { pl: 'Najbliższa planeta?', en: 'Closest planet?' },
+    text: { pl: 'Która planeta jest najbliżej Słońca?', en: 'Which planet is closest to the Sun?' },
+    needs: [/merkur|mercury/i],
+    answer: { pl: 'Najbliżej Słońca jest Merkury – kontekst wymienia go jako pierwszą planetę, licząc od Słońca.',
+              en: 'Mercury is closest to the Sun – the context lists it as the first planet counting from the Sun.' } },
+  { id: 'rings', label: { pl: 'Pierścienie Saturna?', en: 'Saturn’s rings?' },
+    text: { pl: 'Opowiedz mi o pierścieniach Saturna.', en: 'Tell me about Saturn’s rings.' },
+    needs: [/pierście|ring/i, /lod|ice/i],
+    answer: { pl: 'Saturn ma imponujący, złożony system pierścieni, zbudowany głównie z cząsteczek lodu z domieszką odłamków skalnych i pyłu.',
+              en: 'Saturn has an impressive, complex ring system, made mostly of ice particles mixed with rocky debris and dust.' } },
+  { id: 'moons', label: { pl: 'Księżyce Jowisza?', en: 'Jupiter’s moons?' },
+    text: { pl: 'Jakie są galileuszowe księżyce Jowisza?', en: 'What are the Galilean moons of Jupiter?' },
+    needs: [/galileusz|galilean/i],
+    answer: { pl: 'Cztery duże księżyce galileuszowe Jowisza to Io, Europa, Ganimedes i Kallisto.',
+              en: 'Jupiter’s four large Galilean moons are Io, Europa, Ganymede and Callisto.' } },
+  { id: 'animal', label: { pl: 'Największe zwierzę?', en: 'Largest animal?' },
+    text: { pl: 'Jakie jest największe zwierzę na Ziemi?', en: 'What is the largest animal on Earth?' },
+    needs: [/zwierz|animal/i],
+    answer: { pl: 'Kontekst wymienia zwierzęta, ale ta symulacja nie ma gotowej odpowiedzi.', en: 'The context mentions animals, but this simulation has no prepared answer.' } },
+];
 
-        const contentElementIds = {
-            1: 'knowledgeDoc', 2: 'chunks', 3: 'vectorDb', 4: 'userInput',
-            5: 'inputEmbedding', 67: 'retrievedKnowledge', 8: 'combinedPrompt', 9: 'finalAnswer'
-        };
+// 12 hidden topics. A stem matches the start of a word (Unicode-aware), so Polish endings
+// ("Saturna", "pierścieniach") and diacritics work. Stems of 3 letters or less match whole words only.
+const TOPICS = [
+  ['słońc', 'gwiazd', 'karzeł', 'sun', 'star', 'yellow dwarf'],
+  ['merkur', 'wenus', 'najbliż', 'licząc', 'wewnętrzn', 'terrestr', 'mercury', 'venus', 'closest', 'nearest', 'counting', 'inner'],
+  ['asteroid', 'ceres', 'karłowat', 'dwarf planet'],
+  ['życi', 'zwierz', 'life', 'animal'],
+  ['zewnętrzn', 'olbrzym', 'gazow', 'outer', 'giant', 'gas'],
+  ['jowisz', 'galileusz', 'io', 'europ', 'ganimedes', 'kallisto', 'jupiter', 'galilean', 'ganymede', 'callisto'],
+  ['saturn', 'pierścien', 'pierścień', 'tytan', 'ring', 'titan'],
+  ['uran', 'neptun', 'metan', 'burz', 'wietrzn', 'zderzen', 'methane', 'storm', 'wind', 'collision'],
+  ['kuiper', 'oort', 'pluton', 'eris', 'komet', 'pluto', 'comet'],
+  ['ruch', 'orbit', 'galakty', 'mleczn', 'motion', 'galaxy', 'milky'],
+  ['planet', 'układ', 'słoneczn', 'mas', 'grawitac', 'solar', 'system', 'mass', 'gravity'],
+  ['księżyc', 'moon'],
+];
+// Very common topics (the Sun, "planet / system") count for less, like rare words do in real search.
+const TOPIC_WEIGHT = [0.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.35, 1];
+const DIM = TOPICS.length;
+const TOP_K = 3;
+const MIN_SCORE = 0.35;
+const SENTENCES_PER_CHUNK = 3;
 
-        const contentElements = Object.entries(contentElementIds).reduce((acc, [step, id]) => {
-            acc[step] = document.getElementById(id);
-            return acc;
-        }, {});
+// ─── Engine (deterministic: same text, same vector) ───
+function words(text) { return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []; }
+function embed(text) {
+  const ws = words(text), joined = ` ${ws.join(' ')} `;
+  const v = TOPICS.map((stems, d) => {
+    let n = 0;
+    for (const s of stems) {
+      if (s.includes(' ')) n += joined.split(` ${s}`).length - 1;
+      else if (s.length <= 3) n += ws.filter(w => w === s).length;
+      else n += ws.filter(w => w.startsWith(s)).length;
+    }
+    return Math.sqrt(n) * TOPIC_WEIGHT[d];
+  });
+  const m = Math.hypot(...v);
+  return m ? v.map(x => x / m) : v;
+}
+function sentences(text) { return text.trim().split(/(?<=[.!?])\s+(?=[\p{Lu}\p{N}])/u).map(s => s.trim()).filter(Boolean); }
+function chunkText(text) {
+  const s = sentences(text), out = [];
+  for (let i = 0; i < s.length; i += SENTENCES_PER_CHUNK) out.push(s.slice(i, i + SENTENCES_PER_CHUNK).join(' '));
+  return out;
+}
+const cosine = (a, b) => a.reduce((sum, x, i) => sum + x * b[i], 0);
+function pipeline(doc, q, lang) {
+  const chunks = chunkText(doc).map((text, i) => ({ id: `F${i + 1}`, text, vec: embed(text) }));
+  if (!q) return { chunks };
+  const qText = q.text[lang];
+  const qVec = embed(qText);
+  const ranked = chunks.map(c => ({ ...c, score: cosine(qVec, c.vec) })).sort((a, b) => b.score - a.score);
+  ranked.forEach((c, i) => { c.rank = i + 1; c.used = i < TOP_K && c.score >= MIN_SCORE; });
+  const used = ranked.filter(c => c.used);
+  // Rule-based "model": answers only from the chunks that are in the prompt.
+  const cited = used.filter(c => q.needs.some(re => re.test(c.text)));
+  const ok = cited.length && q.needs.every(re => used.some(c => re.test(c.text)));
+  const answer = !used.length ? 'noContext' : ok ? 'answer' : 'notInContext';
+  return { chunks, qText, qVec, ranked, used, cited: ok ? cited : [], answer };
+}
 
-        let currentStep = 0;
-        let knowledgeChunks = [];
-        let knowledgeEmbeddings = {};
-        let vectorDatabase = {};
-        let userQuery = '';
-        let queryEmbeddingVector = [];
-        let queryEmbeddingString = '';
-        let retrievedChunks = [];
-        let combinedPromptText = '';
-        let answer = '';
-        let simulationTimeout = null;
-        let autoPlayActive = false;
-        let autoPlayTimer = null;
-
-        const embeddingDimension = 12;
-        const TOP_K = 3;
-
-        function escapeHtml(str) {
-            return String(str ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        const dimensionKeywords = {
-            0: ['sun', 'star', 'yellow dwarf', 'mass', 'słońce', 'słońca', 'gwiazda', 'gwiazdą', 'żółty karzeł', 'masa'],
-            1: ['mercury', 'merkury', 'merkurego', 'merkurym'],
-            2: ['venus', 'hot', 'atmosphere', 'toxic', 'wenus', 'gorąca', 'gorący', 'atmosfera', 'atmosferę', 'atmosfery'],
-            3: ['earth', 'life', 'water', 'ziemia', 'ziemi', 'ziemię', 'życie', 'życia', 'woda', 'wody'],
-            4: ['mars', 'red planet', 'czerwona planeta', 'czerwonej planecie'],
-            5: ['jupiter', 'galilean', 'io', 'europa', 'ganymede', 'callisto', 'magnetic field',
-                'jowisz', 'jowisza', 'galileuszowe', 'galileuszowych', 'ganimedesa', 'kallisto', 'pole magnetyczne'],
-            6: ['saturn', 'rings', 'titan', 'pierścienie', 'pierścieni', 'tytan', 'tytana'],
-            7: ['uranus', 'neptune', 'ice giant', 'methane', 'blue', 'rotate', 'collision', 'windy', 'storm',
-                'uran', 'urana', 'neptun', 'neptuna', 'lodowy olbrzym', 'metan', 'metanu',
-                'niebieski', 'niebieskie', 'obraca', 'zderzenie', 'wietrzna', 'wietrzny', 'burza', 'burze'],
-            8: ['asteroid', 'belt', 'ceres', 'rocky bodies', 'pas asteroid', 'skaliste ciała'],
-            9: ['kuiper', 'oort', 'pluto', 'eris', 'comet', 'icy bodies',
-                'pluton', 'plutona', 'kometa', 'komety', 'lodowe ciała', 'obłok oorta'],
-            10: ['gravity', 'orbit', 'star', 'mass', 'rocky', 'gas', 'ice', 'terrestrial', 'giant', 'solar', 'system', 'planet',
-                 'grawitacja', 'grawitacji', 'orbita', 'orbicie', 'orbitują', 'skalista', 'skalistych',
-                 'gaz', 'gazowy', 'gazowe', 'lód', 'lodowy', 'lodowe', 'olbrzym', 'olbrzymy',
-                 'słoneczny', 'słonecznego', 'układ', 'układu', 'planeta', 'planety'],
-            11: ['moons', 'rings', 'hot', 'life', 'red', 'atmosphere', 'collision', 'windy', 'magnetic field',
-                 'księżyce', 'księżyców', 'księżyc', 'pierścienie', 'gorąca', 'życie', 'czerwona',
-                 'atmosfera', 'zderzenie', 'wietrzna', 'pole magnetyczne']
-        };
-
-        const defaultKnowledge = `Nasz Układ Słoneczny to rozległe i fascynujące miejsce, skupione wokół Słońca – gwiazdy typu G (żółty karzeł), która zawiera 99,86% całkowitej masy układu. Grawitacja Słońca utrzymuje razem wszystko – od największych planet po najmniejsze odłamki skalne. Oficjalnie wyróżnia się osiem planet. Licząc od Słońca, są to Merkury, Wenus, Ziemia i Mars – wewnętrzne, skaliste (terrestryczne) planety. Za Marsem leży główny pas asteroid – obszar zamieszkały przez miliony skalistych ciał, pozostałości z wczesnego formowania się Układu Słonecznego. Ceres, największy obiekt w pasie asteroid, sklasyfikowany jest jako planeta karłowata. Za pasem asteroid znajdują się planety zewnętrzne: Jowisz, Saturn, Uran i Neptun. Są to gazowe olbrzymy (Jowisz, Saturn) i lodowe olbrzymy (Uran, Neptun) – znacznie większe od planet terrestrycznych, zbudowane głównie z gazów i lodu. Jowisz jest zdecydowanie największą planetą, posiada silne pole magnetyczne i liczne księżyce, w tym cztery duże księżyce galileuszowe: Io, Europę, Ganimedesa i Kallisto. Saturn słynie z imponującego i złożonego systemu pierścieni, zbudowanego głównie z cząsteczek lodu z domieszką odłamków skalnych i pyłu. Ma też wiele księżyców, w tym duży Tytan z gęstą atmosferą. Uran i Neptun, lodowe olbrzymy, są chłodniejsze i mają atmosfery zawierające metan, który nadaje im niebieskawą barwę. Uran jest wyjątkowy, ponieważ obraca się na boku – prawdopodobnie wskutek ogromnego zderzenia we wczesnej historii układu. Neptun to najbardziej wietrzna planeta – w jego atmosferze szaleją naddźwiękowe burze. Za Neptunem leży Pas Kuipera – kolejny dyskowy obszar wypełniony lodowymi ciałami, w tym planetami karłowatymi: Plutonem, Eris, Makemake i Haumea. Jeszcze dalej rozciąga się teoretyczny Obłok Oorta – ogromna sferyczna powłoka lodowych obiektów, uważana za źródło długookresowych komet. Cały Układ Słoneczny jest w ciągłym ruchu – planety orbitują wokół Słońca, księżyce wokół swoich planet, a wszystko to jest częścią galaktyki Drogi Mlecznej.`;
-
-        function chunkText(text, sentencesPerChunk = 3) {
-            const sentences = text.match(/[^.!?]+[.!?]?\s*/g) || [text];
-            const trimmed = sentences.map(s => s.trim()).filter(s => s.length > 0);
-            const chunks = [];
-            for (let i = 0; i < trimmed.length; i += sentencesPerChunk) {
-                chunks.push(trimmed.slice(i, i + sentencesPerChunk).join(' '));
-            }
-            return chunks;
-        }
-
-        function simulateEmbedding(text) {
-            const vector = new Array(embeddingDimension).fill(0);
-            if (!text) return { vector, string: `[${vector.map(v => v.toFixed(2)).join(', ')}]` };
-            const lowerText = text.toLowerCase();
-            let magnitude = 0;
-            for (const dimIndexStr in dimensionKeywords) {
-                const dimIndex = parseInt(dimIndexStr, 10);
-                let score = 0;
-                dimensionKeywords[dimIndex].forEach(keyword => {
-                    const regex = new RegExp(`\\b${keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'gi');
-                    const matches = lowerText.match(regex);
-                    if (matches) score += matches.length;
-                });
-                score += (Math.random() - 0.5) * 0.1;
-                score = Math.max(0, score);
-                vector[dimIndex] = score;
-                magnitude += score * score;
-            }
-            magnitude = Math.sqrt(magnitude);
-            if (magnitude > 0) {
-                for (let i = 0; i < embeddingDimension; i++) vector[i] /= magnitude;
-            }
-            return { vector, string: `[${vector.map(v => v.toFixed(2)).join(', ')}]` };
-        }
-
-        function calculateSimilarity(vec1, vec2) {
-            if (!vec1 || !vec2 || vec1.length !== vec2.length || vec1.length === 0) return 0;
-            let dot = 0, mag1 = 0, mag2 = 0;
-            for (let i = 0; i < vec1.length; i++) {
-                dot += vec1[i] * vec2[i];
-                mag1 += vec1[i] * vec1[i];
-                mag2 += vec2[i] * vec2[i];
-            }
-            mag1 = Math.sqrt(mag1); mag2 = Math.sqrt(mag2);
-            if (mag1 === 0 || mag2 === 0) return 0;
-            return Math.max(0, Math.min(1, dot / (mag1 * mag2)));
-        }
-
-        function simulateVectorSearch(queryVec, db, k = TOP_K) {
-            if (!queryVec || queryVec.length === 0) return [];
-            const scored = [];
-            for (const indexStr in db) {
-                const index = parseInt(indexStr, 10);
-                const chunkVec = db[index];
-                if (!chunkVec || chunkVec.length !== queryVec.length) continue;
-                scored.push({ index, score: calculateSimilarity(queryVec, chunkVec) });
-            }
-            scored.sort((a, b) => b.score - a.score);
-            return scored.slice(0, k);
-        }
-
-        function simulateLLM(prompt) {
-            const ctxMatch = prompt.match(/Kontekst:\s*(.*?)\s*---/is);
-            const qMatch = prompt.match(/Pytanie:\s*(.*?)\s*---/is);
-            const context = ctxMatch ? ctxMatch[1].toLowerCase().trim() : 'brak kontekstu.';
-            const question = qMatch ? qMatch[1].toLowerCase().trim() : '';
-
-            if (context === 'brak kontekstu.' || context === '') {
-                return `Przepraszam, nie znaleziono odpowiedniego kontekstu do odpowiedzi na pytanie: „${question}".`;
-            }
-            if (question.includes('najbliżej') || question.includes('najbliższ')) {
-                if (context.includes('merkury') && (context.includes('od słońca') || context.includes('licząc od')))
-                    return 'Na podstawie dostarczonego kontekstu, Merkury jest pierwszą planetą licząc od Słońca – jest więc do niego najbliżej.';
-                if (context.includes('merkury'))
-                    return 'Kontekst wspomina o Merkurym. Jest on znany jako planeta najbliższa Słońcu.';
-                return 'Pobrany kontekst nie wskazuje wprost, która planeta jest najbliżej Słońca.';
-            }
-            if (question.includes('pierścień') || question.includes('pierścieni') || question.includes('pierścieniach')) {
-                if (context.includes('saturn') && (context.includes('pierścieni') || context.includes('pierścienie')) && context.includes('lodu'))
-                    return 'Kontekst stwierdza, że Saturn słynie z imponującego systemu pierścieni, zbudowanego głównie z cząsteczek lodu z domieszką odłamków skalnych.';
-                if (context.includes('saturn') && (context.includes('pierścień') || context.includes('pierścieni')))
-                    return 'Kontekst wspomina o Saturnie i jego pierścieniach.';
-                return 'Pobrany kontekst nie zawiera szczegółów na temat pierścieni Saturna.';
-            }
-            if ((question.includes('jowisz') || question.includes('jowisza')) &&
-                (question.includes('księżyc') || question.includes('księżyce') || question.includes('galileuszowe'))) {
-                if (context.includes('jowisz') && context.includes('galileusz') && context.includes('io'))
-                    return 'Kontekst stwierdza, że Jowisz posiada liczne księżyce, w tym cztery duże księżyce galileuszowe: Io, Europę, Ganimedesa i Kallisto.';
-                if (context.includes('jowisz') && (context.includes('księżyce') || context.includes('księżyców')))
-                    return 'Kontekst wspomina, że Jowisz ma wiele księżyców.';
-                return 'Pobrany kontekst nie zawiera szczegółów na temat księżyców Jowisza.';
-            }
-            if (question.includes('zwierzę') || question.includes('zwierz')) {
-                if (context.includes('układ słoneczny') || context.includes('planet') || context.includes('słońc'))
-                    return 'Pobrany kontekst dotyczy Układu Słonecznego i planet, a nie zwierząt Ziemi. Nie mogę odpowiedzieć na to pytanie na podstawie tych informacji.';
-                return `Kontekst („${context.substring(0, 60)}...") nie wydaje się dotyczyć zwierząt.`;
-            }
-            return `Na podstawie pobranego kontekstu („${context.substring(0, 60)}...") podejmuję próbę odpowiedzi na pytanie: „${question}". (Symulowana ogólna odpowiedź LLM)`;
-        }
-
-        function setContent(element, content, isHtml = false) {
-            if (!element) return;
-            const displayEl = element.classList.contains('content-display') ? element : element.querySelector('.content-display');
-            const target = displayEl || element;
-            target.classList.add('fade-out');
-            setTimeout(() => {
-                if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
-                    target.value = content || '';
-                } else if (isHtml) {
-                    target.innerHTML = content || '';
-                } else {
-                    target.textContent = content || '';
-                }
-                if (!content && target.classList.contains('content-display') && target.hasAttribute('placeholder')) {
-                    target.innerHTML = '';
-                }
-                target.classList.remove('fade-out');
-            }, 150);
-        }
-
-        function resetPhase2() {
-            userQuery = ''; queryEmbeddingVector = []; queryEmbeddingString = '';
-            retrievedChunks = [];
-            combinedPromptText = ''; answer = '';
-            setContent(contentElements[4], ''); setContent(contentElements[5], '');
-            setContent(contentElements[67], ''); setContent(contentElements[8], '');
-            setContent(contentElements[9], '');
-            for (let i = 4; i <= 9; i++) {
-                const el = getStepElement(i);
-                if (el) el.classList.remove('step-active', 'step-complete');
-            }
-            const phase2Row = document.getElementById('step4').closest('.process-row');
-            phase2Row?.querySelectorAll('.arrow-connector').forEach(a => a.classList.remove('active'));
-        }
-
-        function updateStatusMessage() {
-            const messages = [
-                'Symulacja zresetowana. Kliknij „Uruchom", aby rozpocząć.',
-                'Krok 1 — przetwarzanie dokumentu wiedzy...',
-                'Krok 2 — podział tekstu na fragmenty...',
-                'Krok 3 — zapisywanie embeddingów w bazie wektorowej...',
-                'Krok 4 — wybierz sugestię.',
-                'Krok 5 — symulacja embeddingu zapytania...',
-                'Krok 6/7 — symulacja wyszukiwania wektorowego...',
-                'Krok 6/7 — pobrano odpowiedni fragment wiedzy.',
-                'Krok 8 — rozszerzanie promptu o kontekst...',
-                'Krok 9 — generowanie odpowiedzi...',
-                'Gotowe. Kliknij „Nowe Zapytanie" lub „Resetuj".'
-            ];
-            const el = statusMessage.querySelector('.status-text');
-            const text = messages[currentStep] || messages[10];
-            if (el) el.textContent = text;
-            else statusMessage.textContent = text;
-        }
-
-        function updateUI() {
-            clearTimeout(simulationTimeout);
-
-            const limit = (currentStep > 3) ? 4 : currentStep;
-            for (let i = 1; i < limit; i++) {
-                const el = getStepElement(i);
-                if (el) el.classList.remove('step-active', 'step-complete');
-            }
-            for (let i = currentStep; i <= 9; i++) {
-                const el = getStepElement(i);
-                if (el) el.classList.remove('step-active', 'step-complete');
-            }
-            arrowConnectors.forEach(a => a.classList.remove('active'));
-            allNextButtonContainers.forEach(c => {
-                c.classList.add('hidden');
-                const btn = c.querySelector('.next-step-button');
-                if (btn) btn.disabled = true;
-            });
-            newQueryButtonContainer.classList.add('hidden');
-
-            if (currentStep === 0) {
-                knowledgeChunks = []; knowledgeEmbeddings = {}; vectorDatabase = {};
-                resetPhase2();
-                setContent(contentElements[1], defaultKnowledge);
-                setContent(contentElements[2], '', true);
-                setContent(contentElements[3], '', true);
-                updateStatusMessage();
-                startButton.disabled = false;
-                knowledgeDocInput.disabled = false;
-                userInput.value = '';
-                suggestionsContainer.classList.add('hidden');
-                const firstContainer = document.querySelector('.next-button-container[data-step="1"]');
-                if (firstContainer) { firstContainer.classList.remove('hidden'); const firstBtn = firstContainer.querySelector('.next-step-button'); if (firstBtn) firstBtn.disabled = false; }
-                return;
-            }
-
-            const activeEl = getStepElement(currentStep);
-            if (activeEl) {
-                activeEl.classList.add('step-active');
-                document.querySelectorAll('.arrow-connector.vertical').forEach(arrow => {
-                    const stepNum = parseInt(arrow.previousElementSibling?.querySelector('.next-button-container')?.dataset.step || '0', 10);
-                    const nextStepNum = parseInt(arrow.nextElementSibling?.querySelector('.step')?.id.replace('step', '') || '0', 10);
-                    if (stepNum < currentStep && nextStepNum >= currentStep) arrow.classList.add('active');
-                    else if (currentStep > 3 && stepNum === 3 && currentStep >= 4) arrow.classList.add('active');
-                });
-            }
-
-            for (let i = 1; i < currentStep; i++) {
-                const el = getStepElement(i);
-                if (el && !el.classList.contains('step-active')) {
-                    el.classList.add('step-complete');
-                    let next = el.closest('.step-container')?.nextElementSibling;
-                    while (next && !next.classList.contains('step-container')) {
-                        if (next.classList.contains('arrow-connector')) { next.classList.add('active'); break; }
-                        next = next.nextElementSibling;
-                    }
-                }
-            }
-            if (currentStep >= 8 && getStepElement(67)) {
-                getStepElement(67).classList.add('step-complete');
-                let next = getStepElement(67).closest('.step-container')?.nextElementSibling;
-                while (next && !next.classList.contains('step-container')) {
-                    if (next.classList.contains('arrow-connector')) { next.classList.add('active'); break; }
-                    next = next.nextElementSibling;
-                }
-            }
-            if (currentStep >= 4) {
-                for (let i = 1; i <= 3; i++) {
-                    const el = getStepElement(i);
-                    if (el) el.classList.add('step-complete');
-                    let next = el?.closest('.step-container')?.nextElementSibling;
-                    while (next && !next.classList.contains('step-container')) {
-                        if (next.classList.contains('arrow-connector')) { next.classList.add('active'); break; }
-                        next = next.nextElementSibling;
-                    }
-                }
-            }
-
-            setContent(contentElements[2],
-                knowledgeChunks.length > 0
-                    ? knowledgeChunks.map((c, i) => `<div class="chunk-item">${i + 1}. ${escapeHtml(c)}</div>`).join('')
-                    : '', true);
-
-            const vectorDbHTML = Object.keys(vectorDatabase).length > 0 && knowledgeChunks.length > 0
-                ? knowledgeChunks.map((chunk, index) => {
-                    const emb = knowledgeEmbeddings[index]?.string || '[...]';
-                    return `<div class="chunk-vector-item"><span class="chunk-text">${index + 1}. ${escapeHtml(chunk)}</span><span class="vector-rep">${escapeHtml(emb)}</span></div>`;
-                }).join('') : '';
-            setContent(contentElements[3], vectorDbHTML, true);
-            setContent(contentElements[5], queryEmbeddingString);
-
-            let retrievedHTML = '';
-            if (currentStep >= 7) {
-                if (retrievedChunks.length > 0 && retrievedChunks[0].score > 0) {
-                    const itemsHTML = retrievedChunks.map((r, i) => `
-                        <div class="ranked-item ${i === 0 ? 'winner' : ''}">
-                            <div class="ranked-rank">#${i + 1}</div>
-                            <div class="ranked-text">${escapeHtml(r.text)}</div>
-                            <div class="ranked-score">${r.score.toFixed(3)}</div>
-                        </div>`).join('');
-                    retrievedHTML = `
-                        <div><span class="info-label">Embedding zapytania</span><span class="info-content">${escapeHtml(queryEmbeddingString) || 'N/D'}</span></div>
-                        <div><span class="info-label">Top-${retrievedChunks.length} ranking podobieństwa (cosine)</span><div class="ranked-list">${itemsHTML}</div></div>`;
-                } else {
-                    retrievedHTML = `<div class="not-found">Nie znaleziono pasującego fragmentu.</div>`;
-                }
-            }
-            setContent(contentElements[67], retrievedHTML, true);
-            setContent(contentElements[8], combinedPromptText);
-            setContent(contentElements[9], answer);
-
-            updateStatusMessage();
-            startButton.disabled = true;
-            knowledgeDocInput.disabled = true;
-            userInputError.classList.add('hidden');
-
-            if (currentStep === 4) {
-                suggestionsContainer.classList.remove('hidden');
-            } else {
-                suggestionsContainer.classList.add('hidden');
-            }
-
-            if (currentStep === 9) {
-                newQueryButtonContainer.classList.remove('hidden');
-                newQueryButton.disabled = false;
-            } else if (currentStep < 9) {
-                let show = currentStep;
-                if (currentStep === 6) show = null;
-                else if (currentStep === 7) show = '67';
-                if (show !== null) {
-                    const container = document.querySelector(`.next-button-container[data-step="${show}"]`);
-                    if (container) {
-                        container.classList.remove('hidden');
-                        const btn = container.querySelector('.next-step-button');
-                        if (btn) btn.disabled = false;
-                    }
-                }
-            }
-        }
-
-        startButton.addEventListener('click', () => {
-            if (currentStep === 0) {
-                currentStep = 1;
-                knowledgeDocInput.value = knowledgeDocInput.value.trim() || defaultKnowledge;
-                updateUI();
-            }
-        });
-
-        nextButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                if (currentStep >= 9) return;
-                if (currentStep === 0) startButton.click();
-                if (currentStep === 4) {
-                    userQuery = userInput.value.trim();
-                    if (!userQuery) {
-                        userInputError.textContent = 'Proszę wybrać sugestię.';
-                        userInputError.classList.remove('hidden');
-                        return;
-                    }
-                    userInputError.classList.add('hidden');
-                }
-                if (currentStep === 1) { setContent(contentElements[2], '', true); knowledgeChunks = []; }
-                else if (currentStep === 2) { setContent(contentElements[3], '', true); vectorDatabase = {}; }
-                else if (currentStep === 5) { setContent(contentElements[67], '', true); retrievedChunks = []; }
-
-                const previousStep = currentStep;
-                currentStep++;
-                button.disabled = true;
-                button.closest('.next-button-container')?.classList.add('hidden');
-
-                let stepDelay = 300;
-                let action = () => {};
-
-                switch (currentStep) {
-                    case 2:
-                        action = () => {
-                            const text = knowledgeDocInput.value.trim() || defaultKnowledge;
-                            knowledgeChunks = chunkText(text, 3);
-                            knowledgeEmbeddings = {};
-                            knowledgeChunks.forEach((chunk, i) => { knowledgeEmbeddings[i] = simulateEmbedding(chunk); });
-                        };
-                        break;
-                    case 3:
-                        action = () => {
-                            vectorDatabase = {};
-                            for (const i in knowledgeEmbeddings) vectorDatabase[i] = knowledgeEmbeddings[i].vector;
-                        };
-                        break;
-                    case 4: stepDelay = 50; break;
-                    case 5:
-                        action = () => {
-                            const r = simulateEmbedding(userQuery);
-                            queryEmbeddingVector = r.vector;
-                            queryEmbeddingString = r.string;
-                        };
-                        break;
-                    case 6: stepDelay = 500; break;
-                    case 7: stepDelay = 0; break;
-                    case 8:
-                        action = () => {
-                            const contextText = retrievedChunks.length > 0 && retrievedChunks[0].score > 0
-                                ? retrievedChunks.map((r, i) => `[Fragment ${i + 1} · score ${r.score.toFixed(3)}]\n${r.text}`).join('\n\n')
-                                : 'Brak kontekstu.';
-                            combinedPromptText = `Kontekst:\n${contextText}\n\n---\n\nPytanie:\n${userQuery}\n\n---\n\nOdpowiedź:`;
-                        };
-                        break;
-                    case 9:
-                        stepDelay = 600;
-                        action = () => { answer = simulateLLM(combinedPromptText); };
-                        break;
-                }
-
-                updateStatusMessage();
-
-                simulationTimeout = setTimeout(() => {
-                    action();
-                    if (previousStep === 5 && currentStep === 6) {
-                        currentStep = 7;
-                        const ranked = simulateVectorSearch(queryEmbeddingVector, vectorDatabase);
-                        retrievedChunks = ranked
-                            .filter(r => knowledgeChunks[r.index])
-                            .map(r => ({
-                                index: r.index,
-                                text: knowledgeChunks[r.index],
-                                embedding: knowledgeEmbeddings[r.index] || { vector: [], string: '' },
-                                score: r.score
-                            }));
-                        updateStatusMessage();
-                        updateUI();
-                    } else if (currentStep !== 7) {
-                        updateUI();
-                    }
-                    // Notebook: once the new content is in place, centre that step in the viewport.
-                    if (document.body.dataset.variant !== 'presentation') setTimeout(() => getStepElement(currentStep)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 220);
-                }, stepDelay);
-            });
-        });
-
-        newQueryButton.addEventListener('click', () => { stopAutoPlay(); resetPhase2(); currentStep = 4; updateUI(); });
-        resetButton.addEventListener('click', () => { stopAutoPlay(); currentStep = 0; updateUI(); });
-
-        function startAutoPlay() {
-            autoPlayActive = true;
-            autoButton.classList.add('is-playing');
-            autoLabel.textContent = 'Stop';
-            autoPlayTick();
-        }
-
-        function stopAutoPlay() {
-            autoPlayActive = false;
-            clearTimeout(autoPlayTimer);
-            autoButton.classList.remove('is-playing');
-            autoLabel.textContent = 'Auto';
-        }
-
-        function autoPlayTick() {
-            if (!autoPlayActive) return;
-            if (currentStep === 9) { stopAutoPlay(); return; }
-            if (currentStep === 0) {
-                startButton.click();
-            } else if (currentStep === 4) {
-                if (!userInput.value.trim()) {
-                    userInput.value = suggestionButtons[0]?.getAttribute('data-query') || '';
-                }
-                const btn = document.querySelector('.next-button-container[data-step="4"] .next-step-button');
-                if (btn && !btn.disabled) btn.click();
-            } else {
-                const visible = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)');
-                if (visible) visible.click();
-            }
-            autoPlayTimer = setTimeout(autoPlayTick, 1100);
-        }
-
-        autoButton.addEventListener('click', () => {
-            if (autoPlayActive) stopAutoPlay();
-            else startAutoPlay();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
-            const active = document.activeElement;
-            if (active?.tagName === 'TEXTAREA') return;
-            if (currentStep === 0 && !startButton.disabled) {
-                e.preventDefault();
-                startButton.click();
-                return;
-            }
-            const visibleNext = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)');
-            if (visibleNext) {
-                e.preventDefault();
-                visibleNext.click();
-                return;
-            }
-            if (currentStep === 9 && !newQueryButtonContainer.classList.contains('hidden')) {
-                e.preventDefault();
-                newQueryButton.click();
-            }
-        });
-
-        suggestionButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                if (currentStep === 4) {
-                    userInput.value = button.getAttribute('data-query');
-                    userInputError.classList.add('hidden');
-                }
-            });
-        });
-
-        lucide.createIcons();
-        updateUI();
-    </script><script>// ─── Constants ───
-const VIEW_IDS = ['step1', 'step2', 'step3', 'step4', 'step5', 'step67', 'step8', 'step9'];
+// ─── UI text ───
 const T = {
   pl: {
-    title: 'Symulator RAG', subtitle: 'Od dokumentu do odpowiedzi. Zobacz, skąd model bierze kontekst.',
-    phases: ['Przygotowanie wiedzy', 'Zapytanie i generowanie'],
-    names: ['Dokument', 'Podział na fragmenty', 'Baza wektorowa', 'Zapytanie użytkownika', 'Osadzanie zapytania', 'Pobieranie fragmentów', 'Rozszerzenie promptu', 'Generowanie odpowiedzi'],
-    notes: ['Edytuj tekst przed uruchomieniem symulacji.', 'Dokument jest dzielony na fragmenty po trzy zdania.', 'Każdy fragment otrzymuje symulowany wektor 12 liczb.', 'Wybierz jedno z czterech pytań. Pole nie służy do pisania.', 'To samo odwzorowanie co dla fragmentów dokumentu.', 'Ranking trzech najbardziej podobnych fragmentów.', 'Pytanie i znaleziony kontekst trafiają do jednego promptu.', 'Odpowiedź regułowa, oparta na pobranym kontekście.'],
-    rail: 'Podgląd etapów', return: 'Wróć do aktywnego etapu', preview: 'Kliknięcie etapu zmienia tylko widok, nie przebieg symulacji.',
-    ready: 'Gotowy do uruchomienia', progress: 'Etap', complete: 'Gotowe', next: 'Dalej', start: 'Uruchom', reset: 'Resetuj', auto: 'Auto', stop: 'Stop', new: 'Nowe zapytanie',
-    footer: 'Symulacja edukacyjna · bez połączenia z modelem AI', source: 'Przykładowy dokument i odpowiedzi: PL', hint: '= Dalej', generating: 'Generowanie odpowiedzi…',
-    questions: ['Najbliższa planeta?', 'Pierścienie Saturna?', 'Księżyce Jowisza?', 'Największe zwierzę?'], suggestions: 'Wybierz pytanie', queryPlaceholder: 'Wybrane pytanie pojawi się tutaj', chooseError: 'Proszę wybrać sugestię.',
-    placeholders: ['Fragmenty pojawią się po podziale dokumentu.', 'Wektory pojawią się po przygotowaniu bazy.', 'Wektor pytania pojawi się po osadzeniu.', 'Ranking pojawi się po wyszukaniu fragmentów.', 'Prompt pojawi się po połączeniu kontekstu z pytaniem.', 'Odpowiedź pojawi się na końcu procesu.'],
-    startPresentation: 'Edytuj dokument, a następnie naciśnij Enter lub kliknij kolejny etap.',
-    steps: ['Edytuj dokument, a następnie kliknij „Dalej”.', 'Przetwarzanie dokumentu wiedzy…', 'Podział tekstu na fragmenty…', 'Zapisywanie embeddingów w bazie…', 'Wybierz pytanie z czterech sugestii.', 'Osadzanie zapytania…', 'Wyszukiwanie podobnych fragmentów…', 'Ranking podobieństwa jest gotowy.', 'Łączenie pytania z kontekstem…', 'Odpowiedź gotowa. Możesz zadać nowe pytanie.']
+    title: 'Symulator RAG',
+    lead: 'Zobacz krok po kroku, jak system RAG znajduje w dokumencie fragmenty pasujące do pytania i daje je modelowi jako podstawę odpowiedzi.',
+    reset: 'Od nowa', notebook: 'Notatnik', present: 'Prezentacja', rail: 'Kroki symulacji',
+    phaseA: 'Przygotowanie wiedzy', phaseAMeta: 'Kroki 1–3 · raz, zanim padną pytania',
+    phaseALead: 'Dokument zamienia się w bazę wektorową: fragmenty tekstu zapisane jako liczby.',
+    phaseB: 'Pytanie i odpowiedź', phaseBMeta: 'Kroki 4–8 · przy każdym pytaniu',
+    phaseBLead: 'Pytanie też zamienia się w liczby. System szuka najbliższych fragmentów i dokleja je do promptu.',
+    names: ['Dokument', 'Podział na fragmenty', 'Baza wektorowa', 'Pytanie', 'Wektor pytania', 'Wyszukiwanie', 'Prompt', 'Odpowiedź'],
+    why: [
+      'Źródło wiedzy, z którego system będzie odpowiadał. Możesz zmienić tekst przed podziałem.',
+      'Długi tekst dzielimy na fragmenty po 3 zdania, żeby do modelu trafiały tylko potrzebne części.',
+      'Każdy fragment dostaje wektor: 12 liczb opisujących, o czym jest. Podobne teksty mają podobne słupki.',
+      'Wybierz pytanie. Ostatnie celowo nie pasuje do dokumentu.',
+      'Pytanie zamieniamy na 12 liczb tym samym sposobem co fragmenty. Niebieskie słupki to pytanie.',
+      'Porównujemy wektor pytania z każdym fragmentem (podobieństwo cosinusowe, od 0 do 1). Do promptu trafiają najwyżej 3 fragmenty z wynikiem co najmniej 0,35.',
+      'Instrukcja, znalezione fragmenty i pytanie łączą się w jeden tekst, który dostaje model.',
+      'Model odpowiada tylko na podstawie fragmentów z promptu. W tej symulacji zamiast modelu działają proste reguły.',
+    ],
+    status: { done: 'Gotowe', now: 'Teraz', later: 'Później' },
+    stepOf: (n, name) => `Krok ${n} z 8 · ${name}`,
+    next: name => `Dalej: ${name}`, back: 'Wstecz', choose: 'Najpierw wybierz pytanie', again: 'Zadaj inne pytanie',
+    hintNext: 'albo klawisz', docLabel: 'Tekst dokumentu', docLocked: 'Tekst jest zablokowany po podziale. Wróć do kroku 1, aby go zmienić.',
+    docEmpty: 'Dokument jest pusty. Wpisz tekst, aby kontynuować.',
+    sentences: n => `${n} ${n === 1 ? 'zdanie' : n < 5 ? 'zdania' : 'zdań'}`,
+    chunksCount: n => `${n} fragmentów`, words: n => `${n} słów`,
+    thFrag: 'Fragment', thVec: 'Wektor (12 liczb)', thScore: 'Podobieństwo', thUsed: 'Do promptu?',
+    qRow: 'Pytanie', yes: 'Tak', weak: 'Za słabe', outTop: 'Poza top 3',
+    showNums: 'Pokaż liczby', qLabel: 'Wybrane pytanie',
+    usedSummary: n => n ? `${n} do promptu` : 'brak pasujących',
+    sysLabel: 'Instrukcja', ctxLabel: 'Kontekst', qLabelP: 'Pytanie',
+    sys: 'Odpowiedz na pytanie, korzystając wyłącznie z kontekstu. Jeśli kontekst nie zawiera odpowiedzi, powiedz to.',
+    noCtx: '(żaden fragment nie przekroczył progu 0,35)',
+    you: 'Użytkownik', bot: 'Asystent', sources: 'Źródła:', noSources: 'Brak źródeł',
+    noContext: 'Nie znalazłem w dokumencie fragmentów pasujących do pytania, więc nie mam na czym oprzeć odpowiedzi.',
+    notInContext: 'Fragmenty w kontekście nie zawierają odpowiedzi na to pytanie, więc nie zgaduję.',
+    lessonAnswer: 'Odpowiedź opiera się na fragmencie znalezionym w kroku 6.',
+    lessonNone: 'Brak dopasowania to też dobry wynik: system nie wymyśla odpowiedzi spoza dokumentu.',
+    footer: 'Symulacja edukacyjna · wektory i odpowiedzi liczą proste reguły, bez modelu AI',
+    keys: 'Klawisze: → lub Enter dalej · ← wstecz · R od nowa · Alt+P prezentacja',
+    docLang: 'pl',
   },
   en: {
-    title: 'RAG simulator', subtitle: 'From document to answer. See where the model gets its context.',
-    phases: ['Prepare knowledge', 'Retrieve and generate'],
-    names: ['Knowledge document', 'Split into chunks', 'Vector database', 'User question', 'Embed the question', 'Retrieve chunks', 'Augment the prompt', 'Generate an answer'],
-    notes: ['Edit the source text before starting the simulation.', 'The document is split into groups of three sentences.', 'Each chunk gets a simulated vector of 12 numbers.', 'Choose one of four questions. This field is not editable.', 'The same mapping used for the document chunks.', 'The three most similar chunks, ranked by similarity.', 'The question and retrieved context form one prompt.', 'A rule-based answer using the retrieved context.'],
-    rail: 'Stage preview', return: 'Return to active stage', preview: 'Selecting a stage changes the view, not the simulation.',
-    ready: 'Ready to start', progress: 'Stage', complete: 'Complete', next: 'Next', start: 'Start', reset: 'Reset', auto: 'Auto', stop: 'Stop', new: 'New question',
-    footer: 'Educational simulation · no AI model connection', source: 'Example document and answers: PL', hint: '= Next', generating: 'Generating the answer…',
-    questions: ['Closest planet?', 'Saturn’s rings?', 'Jupiter’s moons?', 'Largest animal?'], suggestions: 'Choose a question', queryPlaceholder: 'Your selected question appears here', chooseError: 'Choose one of the suggested questions.',
-    placeholders: ['Chunks appear after splitting the document.', 'Vectors appear after preparing the database.', 'The question vector appears after embedding.', 'The ranking appears after retrieving chunks.', 'The prompt appears after combining context and question.', 'The answer appears at the end of the process.'],
-    startPresentation: 'Edit the document, then press Enter or click the next stage.',
-    steps: ['Edit the document, then select Next.', 'Processing the knowledge document…', 'Splitting the text into chunks…', 'Storing embeddings in the database…', 'Choose a question from the four suggestions.', 'Embedding the question…', 'Searching for similar chunks…', 'Similarity ranking is ready.', 'Combining question and context…', 'Answer ready. You can ask a new question.']
-  }
+    title: 'RAG simulator',
+    lead: 'See step by step how a RAG system finds the parts of a document that match a question and gives them to the model as the basis for its answer.',
+    reset: 'Start over', notebook: 'Notebook', present: 'Presentation', rail: 'Simulation steps',
+    phaseA: 'Preparing the knowledge', phaseAMeta: 'Steps 1–3 · once, before any question',
+    phaseALead: 'The document becomes a vector database: pieces of text stored as numbers.',
+    phaseB: 'Question and answer', phaseBMeta: 'Steps 4–8 · for every question',
+    phaseBLead: 'The question becomes numbers too. The system finds the closest chunks and adds them to the prompt.',
+    names: ['Document', 'Split into chunks', 'Vector database', 'Question', 'Question vector', 'Search', 'Prompt', 'Answer'],
+    why: [
+      'The knowledge source the system will answer from. You can change the text before splitting.',
+      'A long text is split into chunks of 3 sentences, so only the parts that are needed reach the model.',
+      'Each chunk gets a vector: 12 numbers describing what it is about. Similar texts get similar bars.',
+      'Choose a question. The last one deliberately does not match the document.',
+      'The question becomes 12 numbers, the same way the chunks did. Blue bars are the question.',
+      'The question vector is compared with every chunk (cosine similarity, 0 to 1). At most 3 chunks scoring at least 0.35 go into the prompt.',
+      'The instruction, the retrieved chunks and the question are joined into one text for the model.',
+      'The model answers only from the chunks in the prompt. In this simulation simple rules stand in for the model.',
+    ],
+    status: { done: 'Done', now: 'Now', later: 'Later' },
+    stepOf: (n, name) => `Step ${n} of 8 · ${name}`,
+    next: name => `Next: ${name}`, back: 'Back', choose: 'Choose a question first', again: 'Ask another question',
+    hintNext: 'or press', docLabel: 'Document text', docLocked: 'The text is locked after splitting. Go back to step 1 to change it.',
+    docEmpty: 'The document is empty. Type some text to continue.',
+    sentences: n => `${n} sentence${n === 1 ? '' : 's'}`,
+    chunksCount: n => `${n} chunks`, words: n => `${n} words`,
+    thFrag: 'Chunk', thVec: 'Vector (12 numbers)', thScore: 'Similarity', thUsed: 'In prompt?',
+    qRow: 'Question', yes: 'Yes', weak: 'Too weak', outTop: 'Not top 3',
+    showNums: 'Show the numbers', qLabel: 'Selected question',
+    usedSummary: n => n ? `${n} in prompt` : 'no match',
+    sysLabel: 'Instruction', ctxLabel: 'Context', qLabelP: 'Question',
+    sys: 'Answer the question using only the context. If the context does not contain the answer, say so.',
+    noCtx: '(no chunk passed the 0.35 threshold)',
+    you: 'User', bot: 'Assistant', sources: 'Sources:', noSources: 'No sources',
+    noContext: 'I found no chunks in the document that match the question, so I have nothing to base an answer on.',
+    notInContext: 'The chunks in the context do not answer this question, so I won’t guess.',
+    lessonAnswer: 'The answer is based on the chunk found in step 6.',
+    lessonNone: 'No match is a good result too: the system does not invent an answer from outside the document.',
+    footer: 'Educational simulation · vectors and answers come from simple rules, no AI model',
+    keys: 'Keys: → or Enter next · ← back · R start over · Alt+P presentation',
+    docLang: 'en',
+  },
 };
+const ICONS = ['file-text', 'scissors', 'database', 'message-circle-question-mark', 'binary', 'search', 'file-code', 'sparkles'];
+
 // ─── State ───
-const App = { variant: 'notebook', lang: 'pl', inspected: 'step1', lastStep: -1, advanceTarget: null, advanceTimer: null };
-const STAGE_STEPS = [1, 2, 3, 4, 5, 7, 8, 9];
-try { const savedLanguage = localStorage.getItem('ragsim-language'); if (['pl', 'en'].includes(savedLanguage)) App.lang = savedLanguage; } catch {}
-// ─── DOM refs ───
-const viewCards = VIEW_IDS.map(id => document.getElementById(id));
-const viewFlow = document.querySelector('.process-flow-container');
-const viewHeader = document.querySelector('header');
-const viewToolbar = document.createElement('div');
-const viewMain = document.createElement('div');
-const viewRail = document.createElement('nav');
-const viewProgress = document.createElement('div');
-const viewProgressFill = document.createElement('span');
-const viewProgressLabel = document.createElement('span');
-const viewIntro = document.createElement('div');
-// ─── Helpers ───
-function t(key) { return T[App.lang][key]; }
-function setText(node, text) { if (node.textContent !== text) node.textContent = text; }
-function setButtonText(button, text) {
-  let label = button.querySelector('.view-label');
-  if (!label) { [...button.childNodes].filter(n => n.nodeType === 3).forEach(n => n.remove()); label = document.createElement('span'); label.className = 'view-label'; button.append(label); }
-  setText(label, text);
+const S = { lang: 'pl', mode: 'notebook', step: 1, doc: DOCS.pl, docEdited: false, q: null, focus: null };
+try { const l = localStorage.getItem('ragsim-language'); if (l === 'pl' || l === 'en') S.lang = l; } catch {}
+try { if (localStorage.getItem('ragsim-mode') === 'present') S.mode = 'present'; } catch {}
+S.doc = DOCS[S.lang];
+const t = () => T[S.lang];
+const fmt = x => S.lang === 'pl' ? x.toFixed(2).replace('.', ',') : x.toFixed(2);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ic = (name, cls = 'ic') => `<i data-lucide="${name}" class="${cls}" aria-hidden="true"></i>`;
+function icons(root = document) { if (window.lucide) window.lucide.createIcons({ root }); }
+function vecBars(v, extra = '') {
+  const label = v.map(fmt).join(' ');
+  return `<span class="vec ${extra}" role="img" aria-label="${esc(label)}">${v.map(x => `<i style="--h:${Math.round(x * 100)}%"></i>`).join('')}</span>`;
 }
-function activeId() { return currentStep === 0 ? 'step1' : currentStep === 6 || currentStep === 7 ? 'step67' : `step${currentStep}`; }
-function inspectStage(id) { App.inspected = id; renderView(); }
-function stopAdvance() { App.advanceTarget = null; clearTimeout(App.advanceTimer); }
-// Presentation: reach a later stage by performing every step in between. Stops at the question stage until a question is chosen.
-function advanceTo(targetStep) {
-  App.advanceTarget = targetStep;
-  const tick = () => {
-    if (App.advanceTarget === null || App.variant !== 'presentation') return stopAdvance();
-    if (currentStep >= App.advanceTarget || currentStep >= 9) return stopAdvance();
-    if (currentStep === 4 && !userInput.value.trim()) return stopAdvance();
-    if (currentStep === 0) { if (!startButton.disabled) startButton.click(); }
-    else { const next = document.querySelector('.next-button-container:not(.hidden) .next-step-button:not(:disabled)'); if (next) next.click(); }
-    App.advanceTimer = setTimeout(tick, 200);
-  };
-  tick();
+const firstWords = (s, n = 7) => s.split(/\s+/).slice(0, n).join(' ') + '…';
+
+// ─── Step bodies ───
+function body(i, P) {
+  const L = t();
+  switch (i) {
+    case 1: {
+      const locked = S.step > 1;
+      return `<label class="field"><span class="field-label">${L.docLabel}</span>
+        <textarea class="doc" id="doc" ${locked ? 'readonly' : ''} spellcheck="false">${esc(S.doc)}</textarea></label>
+        <p class="hint" id="docHint">${locked ? L.docLocked : `${L.words(words(S.doc).length)} · ${L.sentences(sentences(S.doc).length)}`}</p>`;
+    }
+    case 2:
+      return `<div class="chunks">${P.chunks.map(c => `<article class="chunk"><div class="chunk-h"><b>${c.id}</b><span class="hint">${L.sentences(sentences(c.text).length)}</span></div><p>${esc(c.text)}</p></article>`).join('')}</div>`;
+    case 3:
+      return `<div class="table-card"><div class="table-scroll"><table><thead><tr><th>${L.thFrag}</th><th>${L.thVec}</th></tr></thead><tbody>
+        ${P.chunks.map(c => `<tr><td class="lbl"><span class="fid">${c.id}</span><span>${esc(firstWords(c.text))}</span></td><td>${vecBars(c.vec)}</td></tr>`).join('')}
+        </tbody></table></div></div>
+        <details class="more"><summary>${L.showNums}</summary><div>${P.chunks.map(c => `<p class="vec-nums"><b>${c.id}</b> [${c.vec.map(fmt).join(', ')}]</p>`).join('')}</div></details>`;
+    case 4: {
+      const lockedQ = S.step > 4;
+      return `<div class="questions" role="group" aria-label="${L.names[3]}">${QUESTIONS.map(q => `<button type="button" class="opt" data-q="${q.id}" aria-pressed="${S.q === q.id}" ${lockedQ ? 'disabled' : ''}>${esc(q.label[S.lang])}</button>`).join('')}</div>
+        ${P.qText ? `<div class="field"><span class="field-label">${L.qLabel}</span><p class="question">${esc(P.qText)}</p></div>` : ''}`;
+    }
+    case 5:
+      return `<p class="question">${esc(P.qText)}</p>${vecBars(P.qVec, 'big q')}<p class="vec-nums">[${P.qVec.map(fmt).join(', ')}]</p>`;
+    case 6:
+      return `<div class="table-card"><div class="table-scroll"><table><thead><tr><th>#</th><th>${L.thFrag}</th><th class="vcol">${L.thVec}</th><th class="num">${L.thScore}</th><th>${L.thUsed}</th></tr></thead><tbody>
+        <tr class="qrow"><td></td><td class="lbl">${L.qRow}<span>${esc(P.qText)}</span></td><td class="vcol">${vecBars(P.qVec, 'q')}</td><td></td><td></td></tr>
+        ${P.ranked.map(c => `<tr class="${c.used ? 'picked' : ''}"><td class="num">${c.rank}</td><td class="lbl"><span class="fid">${c.id}</span><span>${esc(firstWords(c.text))}</span></td><td class="vcol">${vecBars(c.vec)}</td>
+          <td class="num">${fmt(c.score)}<span class="meter" aria-hidden="true"><i style="--w:${Math.round(c.score * 100)}%"></i></span></td>
+          <td>${c.used ? `<span class="chip tone-green">${ic('check')}${L.yes}</span>` : `<span class="chip tone-stone">${c.rank <= TOP_K ? L.weak : L.outTop}</span>`}</td></tr>`).join('')}
+        </tbody></table></div></div>`;
+    case 7:
+      return `<div class="prompt">
+        <section class="sys"><span class="edu-overline">${L.sysLabel}</span><p>${esc(L.sys)}</p></section>
+        <section><span class="edu-overline">${L.ctxLabel}</span>${P.used.length ? P.used.map(c => `<p>[${c.id}] ${esc(c.text)}</p>`).join('') : `<p class="empty">${L.noCtx}</p>`}</section>
+        <section><span class="edu-overline">${L.qLabelP}</span><p>${esc(P.qText)}</p></section></div>`;
+    case 8: {
+      const q = QUESTIONS.find(x => x.id === S.q);
+      const text = P.answer === 'answer' ? q.answer[S.lang] : L[P.answer];
+      return `<div class="chat">
+        <p class="bubble user"><span class="edu-overline">${L.you}</span>${esc(P.qText)}</p>
+        <p class="bubble bot edu-block"><span class="edu-overline">${L.bot}</span>${esc(text)}</p></div>
+        <div class="sources"><span class="field-label">${L.sources}</span>${P.cited.length ? P.cited.map(c => `<span class="fid">${c.id}</span>`).join('') : `<span class="chip tone-stone">${L.noSources}</span>`}</div>
+        <p class="callout tone-yellow edu-block">${P.cited.length ? L.lessonAnswer : L.lessonNone}</p>`;
+    }
+  }
 }
+function summary(i, P) {
+  const L = t();
+  switch (i) {
+    case 1: return L.words(words(S.doc).length);
+    case 2: case 3: return L.chunksCount(P.chunks.length);
+    case 4: case 5: return P.qText || '';
+    case 6: return L.usedSummary(P.used.length);
+    case 7: return P.used.map(c => c.id).join(', ') || L.noCtx;
+    case 8: return P.cited.map(c => c.id).join(', ');
+  }
+  return '';
+}
+function canAdvance(P) {
+  if (S.step === 1) return sentences(S.doc).length > 0;
+  if (S.step === 4) return !!S.q;
+  return S.step < 8;
+}
+function foot(i, P) {
+  const L = t();
+  const back = i > 1 ? `<button type="button" class="btn-ghost" data-act="back" aria-label="${L.back}">${ic('arrow-left')}<span class="lbl">${L.back}</span></button>` : '';
+  if (i === 8) return `${back}<span class="spacer"></span><button type="button" class="edu-btn" data-act="again">${ic('rotate-ccw')}${L.again}</button>`;
+  const ok = canAdvance(P);
+  const label = i === 4 && !ok ? L.choose : i === 1 && !ok ? L.docEmpty : L.next(L.names[i]);
+  return `${back}<span class="spacer"></span><span class="hint">${ok ? `${L.hintNext} <kbd>→</kbd>` : ''}</span>
+    <button type="button" class="edu-btn" data-act="next" ${ok ? '' : 'disabled'}>${label}${ic('arrow-right')}</button>`;
+}
+
 // ─── Render ───
-function renderView() {
-  const currentId = activeId();
-  if (currentStep !== App.lastStep) { App.inspected = currentId; App.lastStep = currentStep; }
-  document.body.dataset.variant = App.variant;
-  document.body.dataset.step = String(currentStep);
-  document.body.dataset.inspected = App.inspected;
-  document.body.dataset.autoplay = String(autoPlayActive);
-  const appLogo = document.querySelector('.app-logo img');
-  const logoSource = window.VIEW_LOGO;
-  if (appLogo.getAttribute('src') !== logoSource) appLogo.src = logoSource;
-  viewCards.forEach((card, i) => {
-    card.parentElement.classList.toggle('is-inspected', card.id === App.inspected);
-    card.dataset.state = card.id === currentId && currentStep > 0 ? 'active' : card.classList.contains('step-complete') ? 'complete' : 'pending';
-    const rail = viewRail.querySelector(`[data-view="${card.id}"]`);
-    rail.dataset.inspected = String(card.id === App.inspected);
-    if (card.id === currentId) rail.setAttribute('aria-current', 'step'); else rail.removeAttribute('aria-current');
-    rail.dataset.reachable = String(App.variant === 'presentation' && STAGE_STEPS[i] > currentStep && currentStep < 9);
-    setText(rail.querySelector('.rail-name'), t('names')[i]);
-    setText(card.querySelector('.view-title'), t('names')[i]);
-    setText(card.querySelector('.step-note'), t('notes')[i]);
-  });
-  setText(viewHeader.querySelector('h1'), t('title'));
-  setText(viewHeader.querySelector('.header-sub'), t('subtitle'));
-  document.querySelectorAll('.phase-tag').forEach((node, i) => setText(node, t('phases')[i]));
-  viewRail.querySelectorAll('.rail-phase').forEach((node, i) => setText(node, t('phases')[i]));
-  setText(viewRail.querySelector('.rail-caption'), t('preview'));
-  setText(viewRail.querySelector('.return-active'), t('return'));
-  viewRail.querySelector('.return-active').hidden = App.inspected === currentId;
-  viewRail.setAttribute('aria-label', t('rail'));
-  setText(viewIntro.querySelector('h2'), t('names')[VIEW_IDS.indexOf(App.inspected)]);
-  setText(viewIntro.querySelector('p'), t('notes')[VIEW_IDS.indexOf(App.inspected)]);
-  setButtonText(startButton, t('start')); setButtonText(resetButton, t('reset')); setButtonText(newQueryButton, t('new'));
-  nextButtons.forEach(button => setButtonText(button, t('next')));
-  setText(autoLabel, t(autoPlayActive ? 'stop' : 'auto'));
-  setText(document.querySelector('.kbd-hint .view-hint'), t('hint'));
-  const index = VIEW_IDS.indexOf(currentId);
-  const value = currentStep === 0 ? 0 : currentStep === 9 && answer ? 8 : index;
-  setText(viewProgressLabel, currentStep === 0 ? '0 / 8' : `${index + 1} / 8`);
-  viewProgress.setAttribute('aria-valuenow', String(value));
-  viewProgress.setAttribute('aria-valuetext', currentStep === 0 ? t('ready') : `${t('progress')} ${index + 1}: ${t('names')[index]}`);
-  viewProgressFill.style.width = `${value / 8 * 100}%`;
-  // Keep the original live status untouched; translate its sibling presentation label only.
-  setText(document.getElementById('view-status'), currentStep === 9 && !answer ? t('generating') : currentStep === 0 && App.variant === 'presentation' ? t('startPresentation') : t('steps')[currentStep]);
-  setButtonText(chromeBar.querySelector('.appbar-reset'), t('reset'));
-  const sourceStatus = statusMessage.querySelector('.status-text');
-  sourceStatus.style.display = 'none';
-  suggestionButtons.forEach((button, i) => { button.setAttribute('aria-pressed', String(button.dataset.query === userInput.value)); setText(button, t('questions')[i]); });
-  setText(document.querySelector('.suggestions-label'), t('suggestions'));
-  userInput.placeholder = t('queryPlaceholder');
-  if (!userInputError.classList.contains('hidden')) setText(userInputError, t('chooseError'));
-  ['chunks', 'vectorDb', 'inputEmbedding', 'retrievedKnowledge', 'combinedPrompt', 'finalAnswer'].forEach((id, i) => document.getElementById(id).setAttribute('placeholder', t('placeholders')[i]));
-  document.documentElement.lang = App.lang;
-  setText(document.querySelector('footer p'), t('footer'));
-  setText(document.querySelector('.source-note'), t('source'));
-  renderChrome();
-  document.body.dataset.contract = 'ready';
-}
-// ─── Listeners ───
-function listenView() {
-  viewRail.addEventListener('click', event => {
-    const button = event.target.closest('[data-view]');
-    if (button) {
-      const targetStep = STAGE_STEPS[VIEW_IDS.indexOf(button.dataset.view)];
-      if (App.variant === 'presentation' && targetStep > currentStep && currentStep < 9) advanceTo(targetStep);
-      else inspectStage(button.dataset.view);
-    }
-    if (event.target.closest('.return-active')) inspectStage(activeId());
-  });
+const qObj = () => QUESTIONS.find(x => x.id === S.q) || null;
+function render(scroll = false) {
+  const L = t();
+  const P = pipeline(S.doc, qObj(), S.lang);
+  document.documentElement.lang = S.lang;
+  document.title = L.title;
+  const present = S.mode === 'present' && !matchMedia('(max-width: 768px)').matches;
+  document.body.classList.toggle('present', present);
+  document.querySelectorAll('[data-t]').forEach(n => { const v = L[n.dataset.t]; if (typeof v === 'string' && n.textContent !== v) n.textContent = v; });
+  document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
+  document.querySelectorAll('#langSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === S.lang)));
+  document.getElementById('rail').setAttribute('aria-label', L.rail);
 
-  document.addEventListener('click', () => setTimeout(renderView, 0));
-  document.addEventListener('keydown', () => setTimeout(renderView, 0));
-  const observer = new MutationObserver(renderView);
-  observer.observe(statusMessage.querySelector('.status-text'), { childList: true, characterData: true, subtree: true });
-  observer.observe(autoLabel, { childList: true, characterData: true, subtree: true });
-  observer.observe(document.getElementById('finalAnswer'), { childList: true, characterData: true, subtree: true });
-  // Original timed transitions mutate step classes after updating the status.
-  viewCards.forEach(card => observer.observe(card, { attributes: true, attributeFilter: ['class'] }));
+  // rail
+  const ol = document.querySelector('#rail ol');
+  ol.innerHTML = L.names.map((name, k) => {
+    const n = k + 1, cls = n < S.step ? 'done' : n === S.step ? 'now' : 'later';
+    return `<li class="${cls}"><button type="button" data-go="${n}" ${n > S.step ? 'disabled' : ''} ${n === S.step ? 'aria-current="step"' : ''}>${ic(n < S.step ? 'check' : ICONS[k])}<span>${name}</span></button></li>`;
+  }).join('');
+  document.getElementById('railText').textContent = L.stepOf(S.step, L.names[S.step - 1]);
+  document.getElementById('railBar').style.width = `${(S.step / 8) * 100}%`;
+  const live = document.getElementById('live'), liveText = L.stepOf(S.step, L.names[S.step - 1]);
+  if (live.textContent !== liveText) live.textContent = liveText;
+  const a = Math.min(S.step > 3 ? 3 : S.step - 1, 3), b = Math.max(0, S.step - 4) + (S.step === 8 ? 1 : 0);
+  document.getElementById('numA').textContent = `${a}/3`; document.getElementById('barA').style.width = `${a / 3 * 100}%`;
+  document.getElementById('numB').textContent = `${b}/5`; document.getElementById('barB').style.width = `${b / 5 * 100}%`;
+
+  // cards
+  const focus = present ? (S.focus || S.step) : null;
+  const card = i => {
+    const state = i < S.step ? 'done' : i === S.step ? 'now' : 'later';
+    const open = state !== 'later' && (!present || i === focus);
+    const tone = state === 'later' ? 'tone-stone' : i <= 3 ? 'tone-grape' : 'tone-blue';
+    const chip = state === 'done' ? `<span class="chip tone-green">${ic('check')}${L.status.done}</span>`
+      : state === 'now' ? `<span class="chip tone-yellow">${L.status.now}</span>` : `<span class="chip tone-stone">${L.status.later}</span>`;
+    const sum = !open && state === 'done' ? `<p class="summary">${esc(summary(i, P))}</p>` : '';
+    return `<article class="card ${state} ${open ? '' : 'collapsed'}" id="step${i}" aria-labelledby="h${i}">
+      <div class="card-head"><span class="tile-h"><span class="badge ${tone}">${ic(ICONS[i - 1])}</span><h3 id="h${i}">${L.names[i - 1]}</h3></span>${sum}${chip}</div>
+      ${open ? `<div class="card-body"><p class="why">${L.why[i - 1]}</p>${body(i, P)}</div>` : ''}
+      ${open && state === 'now' ? `<div class="card-foot">${foot(i, P)}</div>` : ''}</article>`;
+  };
+  // keep the textarea (and its caret) alive while typing on step 1
+  const active = document.activeElement && document.activeElement.id === 'doc' ? document.activeElement : null;
+  if (!active) document.getElementById('stepsA').innerHTML = [1, 2, 3].map(card).join('');
+  document.getElementById('stepsB').innerHTML = [4, 5, 6, 7, 8].map(card).join('');
+  icons(document.getElementById('chrome')); icons(document.querySelector('main'));
+  if (scroll) {
+    const target = document.getElementById(`step${present ? focus : S.step}`);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (target) target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
 }
+
+// ─── Actions ───
+function go(step) { S.step = Math.max(1, Math.min(8, step)); S.focus = null; if (S.step < 4) S.q = null; render(true); }
+function next() { const P = pipeline(S.doc, qObj(), S.lang); if (canAdvance(P)) go(S.step + 1); }
+function back() { if (S.step > 1) { if (S.step === 5) S.q = null; go(S.step - 1); } }
+function reset() { S.doc = DOCS[S.lang]; S.docEdited = false; S.q = null; go(1); }
+function again() { S.q = null; go(4); }
+function setLang(l) {
+  if (l === S.lang) return;
+  S.lang = l; if (!S.docEdited) S.doc = DOCS[l];
+  try { localStorage.setItem('ragsim-language', l); } catch {}
+  render();
+}
+function setMode(m) { S.mode = m; S.focus = null; try { localStorage.setItem('ragsim-mode', m); } catch {} render(true); }
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('button'); if (!el || el.disabled) return;
+  if (el.dataset.act === 'next') next();
+  else if (el.dataset.act === 'back') back();
+  else if (el.dataset.act === 'again') again();
+  else if (el.dataset.q) { S.q = el.dataset.q; go(5); }
+  else if (el.dataset.go) {
+    const n = +el.dataset.go;
+    if (S.mode === 'present') { S.focus = n; render(true); }
+    else document.getElementById(`step${n}`)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }
+  else if (el.dataset.mode) setMode(el.dataset.mode);
+  else if (el.dataset.lang) setLang(el.dataset.lang);
+  else if (el.id === 'reset') reset();
+});
+document.addEventListener('input', e => {
+  if (e.target.id !== 'doc') return;
+  S.doc = e.target.value; S.docEdited = S.doc !== DOCS.pl && S.doc !== DOCS.en;
+  const L = t(), hint = document.getElementById('docHint');
+  if (hint) hint.textContent = `${L.words(words(S.doc).length)} · ${L.sentences(sentences(S.doc).length)}`;
+  const f = document.querySelector('#step1 .card-foot'); if (f) { f.innerHTML = foot(1, null); icons(f); }
+});
+document.addEventListener('keydown', e => {
+  if (e.altKey && (e.key === 'p' || e.key === 'P' || e.code === 'KeyP')) { e.preventDefault(); setMode(S.mode === 'present' ? 'notebook' : 'present'); return; }
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'textarea' || tag === 'input' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'ArrowRight' || (e.key === 'Enter' && tag !== 'button')) { e.preventDefault(); next(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+  else if (e.key === 'r' || e.key === 'R') reset();
+});
+const chromeObs = new ResizeObserver(() => document.documentElement.style.setProperty('--chrome-h', `${document.getElementById('chrome').offsetHeight}px`));
+chromeObs.observe(document.getElementById('chrome'));
+addEventListener('load', () => icons());
+
+// test hook
+window.RAG = { S, pipeline, embed, chunkText, QUESTIONS, DOCS, TOPICS, MIN_SCORE, TOP_K, go, next, back, reset, setLang, setMode };
+
 // ─── Init ───
-function initView() {
-  const headingWrap = document.createElement('div');
-  headingWrap.append(viewHeader.querySelector('h1'), viewHeader.querySelector('.header-sub'));
-  viewHeader.append(headingWrap);
-  const logo = document.createElement('div'); logo.className = 'app-logo';
-  const logoImage = document.createElement('img'); logoImage.src = window.VIEW_LOGO; logoImage.alt = ''; logo.append(logoImage, document.createTextNode('edulab')); viewHeader.append(logo);
-  viewToolbar.className = 'app-toolbar';
-  document.querySelector('.controls').before(viewToolbar);
-  viewToolbar.append(document.querySelector('.controls'), statusMessage);
-  const liveText = document.createElement('span'); liveText.id = 'view-status'; statusMessage.append(liveText);
-  viewProgressLabel.className = 'progress-label'; statusMessage.append(viewProgressLabel);
-  viewProgress.className = 'progress-track'; viewProgress.setAttribute('role', 'progressbar'); viewProgress.setAttribute('aria-label', 'RAG'); viewProgress.setAttribute('aria-valuemin', '0'); viewProgress.setAttribute('aria-valuemax', '8'); viewProgress.append(viewProgressFill); viewToolbar.append(viewProgress);
-  document.querySelector('.kbd-hint').innerHTML = '<kbd>Enter</kbd> <span class="view-hint"></span>';
-  viewMain.className = 'app-main'; viewFlow.before(viewMain); viewRail.className = 'step-rail'; viewMain.append(viewRail, viewFlow);
-  viewIntro.className = 'focus-intro'; viewIntro.innerHTML = '<h2></h2><p></p>'; viewFlow.prepend(viewIntro);
-  viewCards.forEach((card, i) => {
-    const title = card.querySelector('.step-title'); const titleText = document.createElement('span'); titleText.className = 'view-title';
-    [...title.childNodes].filter(node => node.nodeType === 3).forEach(node => node.remove());
-    const number = document.createElement('span'); number.className = 'step-number'; number.textContent = String(i + 1).padStart(2, '0'); title.prepend(number); title.append(titleText);
-    title.id = `${card.id}-title`; card.setAttribute('aria-labelledby', title.id);
-    const note = document.createElement('p'); note.className = 'step-note'; note.id = `${card.id}-note`; title.after(note);
-    const input = card.querySelector('textarea, input'); if (input) { input.setAttribute('aria-labelledby', title.id); input.setAttribute('aria-describedby', note.id); }
-    if (i === 0 || i === 3) { const phase = document.createElement('p'); phase.className = 'rail-phase'; viewRail.append(phase); }
-    const button = document.createElement('button'); button.className = 'rail-button'; button.dataset.view = card.id; button.innerHTML = `<span class="step-number">${String(i + 1).padStart(2, '0')}</span><span class="rail-name"></span>`; viewRail.append(button);
-  });
-  const returnButton = document.createElement('button'); returnButton.className = 'btn return-active'; viewRail.append(returnButton);
-  const caption = document.createElement('p'); caption.className = 'rail-caption'; viewRail.append(caption);
-  const source = document.createElement('span'); source.className = 'source-note'; document.querySelector('footer').append(source);
-  document.querySelectorAll('section').forEach((section, i) => section.querySelector('.phase-tag').id = `phase${i + 1}-title`);
-  initChrome(); lucide.createIcons(); listenView(); renderView();
-
-}
-// ─── Application chrome ───
-const CHROME_T = {
-  pl: { notebook: 'Notatnik', presentation: 'Tryb prezentacji', view: 'Widok symulatora', language: 'Przełącz na język angielski', checks: 'Sprawdź interfejs', stages: 'Osiem etapów procesu', controls: 'Oryginalne sterowanie', questions: 'Cztery pytania do wyboru', readonly: 'Pytanie tylko do odczytu', mode: 'Poprawny widok', languageState: 'Spójny język interfejsu', overflow: 'Brak przewijania poziomego', switched: 'Widok: ', returnCurrent: 'Wróć do aktywnego etapu' },
-  en: { notebook: 'Notebook', presentation: 'Presentation view', view: 'Simulator view', language: 'Switch to Polish', checks: 'Check the interface', stages: 'Eight process stages', controls: 'Original simulation controls', questions: 'Four suggested questions', readonly: 'Read-only question field', mode: 'Valid view mode', languageState: 'Consistent interface language', overflow: 'No horizontal overflow', switched: 'View: ', returnCurrent: 'Return to the active stage' }
-};
-const chromeBar = document.createElement('div');
-const chromeAnnouncement = document.createElement('div');
-const chromeChecks = document.createElement('details');
-function ct(key) { return CHROME_T[App.lang][key]; }
-function setViewMode(mode) {
-  if (!['notebook', 'presentation'].includes(mode)) return;
-  stopAdvance();
-  App.variant = mode;
-  App.inspected = activeId();
-  renderView();
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  setText(chromeAnnouncement, ct('switched') + ct(mode));
-}
-function renderChrome() {
-  document.body.dataset.language = App.lang;
-  document.title = t('title');
-  chromeBar.querySelectorAll('[data-view-mode]').forEach(button => {
-    setText(button, ct(button.dataset.viewMode));
-    button.setAttribute('aria-pressed', String(button.dataset.viewMode === App.variant));
-    button.title = 'Alt+P';
-  });
-  chromeBar.querySelector('.view-switch').setAttribute('aria-label', ct('view'));
-  const languageButton = document.getElementById('app-language');
-  setText(languageButton, App.lang === 'pl' ? 'EN' : 'PL');
-  languageButton.setAttribute('aria-label', ct('language'));
-  setText(chromeChecks.querySelector('summary'), ct('checks'));
-  App.verify();
-}
-App.verify = function() {
-  const checks = [
-    ['stages', VIEW_IDS.every(id => !!document.getElementById(id))],
-    ['controls', ['startButton', 'autoButton', 'resetButton', 'newQueryButton'].every(id => !!document.getElementById(id)) && document.querySelectorAll('.next-step-button').length === 7],
-    ['questions', document.querySelectorAll('.suggestion-button').length === 4],
-    ['readonly', document.getElementById('userInput')?.readOnly === true],
-    ['mode', ['notebook', 'presentation'].includes(App.variant) && document.body.dataset.variant === App.variant && document.querySelectorAll('[data-view-mode][aria-pressed="true"]').length === 1],
-    ['languageState', ['pl', 'en'].includes(App.lang) && document.documentElement.lang === App.lang],
-    ['overflow', document.documentElement.scrollWidth <= window.innerWidth + 1]
-  ].map(([key, pass]) => ({ key, pass: Boolean(pass) }));
-  document.body.dataset.verification = checks.every(check => check.pass) ? 'pass' : 'fail';
-  chromeChecks.querySelector('ul').replaceChildren(...checks.map(check => {
-    const item = document.createElement('li'); item.dataset.probe = check.key; item.dataset.result = check.pass ? 'pass' : 'fail';
-    item.textContent = `${check.pass ? 'PASS' : 'FAIL'} · ${ct(check.key)}`; return item;
-  }));
-  return checks;
-};
-function initChrome() {
-  chromeBar.className = 'appbar';
-  const actions = document.createElement('div'); actions.className = 'appbar-actions';
-  actions.innerHTML = '<span class="appbar-hint" aria-hidden="true">Alt+P</span><button type="button" class="btn appbar-reset" id="app-reset"><i data-lucide="rotate-cw"></i></button><div class="view-switch" role="group"><button type="button" data-view-mode="notebook" aria-pressed="true">Notatnik</button><button type="button" data-view-mode="presentation" aria-pressed="false">Tryb prezentacji</button></div><button type="button" class="btn" id="app-language">EN</button>';
-  chromeBar.append(document.querySelector('.app-logo'), actions);
-  document.body.prepend(chromeBar);
-  chromeAnnouncement.className = 'sr-only'; chromeAnnouncement.setAttribute('role', 'status'); chromeAnnouncement.setAttribute('aria-live', 'polite'); document.body.append(chromeAnnouncement);
-  chromeChecks.className = 'verification-panel'; chromeChecks.innerHTML = '<summary></summary><ul aria-live="polite"></ul>';
-  document.querySelector('footer').before(chromeChecks);
-  chromeChecks.addEventListener('toggle', () => { if (chromeChecks.open) App.verify(); });
-  chromeBar.addEventListener('click', event => {
-    const button = event.target.closest('[data-view-mode]');
-    if (button) setViewMode(button.dataset.viewMode);
-    if (event.target.closest('#app-reset')) { stopAdvance(); resetButton.click(); window.scrollTo({ top: 0, behavior: 'instant' }); }
-    if (event.target.closest('#app-language')) {
-      App.lang = App.lang === 'pl' ? 'en' : 'pl';
-      try { localStorage.setItem('ragsim-language', App.lang); } catch {}
-      renderView();
-    }
-  });
-  document.addEventListener('keydown', event => {
-    // New navigation buttons keep their native Enter action; the original
-    // document-wide Enter shortcut still handles simulation controls.
-    if (event.key === 'Enter' && event.target.closest('.appbar, .step-rail, .verification-panel')) event.stopPropagation();
-    if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'p' && !/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) {
-      event.preventDefault(); event.stopPropagation(); setViewMode(App.variant === 'notebook' ? 'presentation' : 'notebook');
-    }
-  }, true);
-  const chromeSize = new ResizeObserver(() => document.documentElement.style.setProperty('--chrome-height', `${chromeBar.getBoundingClientRect().height}px`));
-  chromeSize.observe(chromeBar);
-}
-
-initView();
-</script></body></html>
+render();
+const BRAND_FONTS = ['400 1em Outfit', '700 1em Outfit', '400 1em "IBM Plex Sans"', '600 1em "IBM Plex Sans"', '400 1em "Roboto Mono"'];
+Promise.race([
+  Promise.all(BRAND_FONTS.map(f => document.fonts.load(f).catch(() => null))),
+  new Promise(r => setTimeout(r, 1500)),
+]).then(() => document.documentElement.classList.add('app-ready'));
+</script>
+</body>
+</html>
